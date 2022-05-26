@@ -263,7 +263,7 @@ head(data.scores) #check the data</code></pre>
 </div>
 <div id="another-way-to-add-columns" class="section level2">
 <h2>Another way to add columns</h2>
-<p>Another way to add columns to the existing dataset is to use pipes from the dplyr package (2).</p>
+<p>Another way to add columns to the existing dataset is to use pipes from the dplyr package (Wickham et al., 2022).</p>
 <pre class="r"><code>library(dplyr) #load the package
 data.scores &lt;- as.data.frame(scores(nmds_density)$sites) #extract NMDS scores
 data.scores.dplyr &lt;- data.scores %&gt;% mutate(Site = density_combined$Site,Year=density_combined$Year,
@@ -279,7 +279,7 @@ head(data.scores.dplyr)</code></pre>
 </div>
 <div id="plot-the-graph-using-ggplot2" class="section level2">
 <h2>Plot the graph using ggplot2</h2>
-<p>Package ggplot2 is always the way to go when plotting (3).</p>
+<p>Package ggplot2 is always the way to go when plotting (Wickham, 2016).</p>
 <pre class="r"><code>library(ggplot2) #load the package
 
 density_combined_graph &lt;- ggplot(data.scores.dplyr, aes(x = NMDS1, y = NMDS2)) + 

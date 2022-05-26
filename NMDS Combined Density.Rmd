@@ -84,7 +84,7 @@ head(data.scores) #check the data
 
 ## Another way to add columns
 
-Another way to add columns to the existing dataset is to use pipes from the dplyr package (2).
+Another way to add columns to the existing dataset is to use pipes from the dplyr package (Wickham et al., 2022).
 
 ```{r message=F, warning=F}
 library(dplyr) #load the package
@@ -96,7 +96,7 @@ head(data.scores.dplyr)
 
 ## Plot the graph using ggplot2
 
-Package ggplot2 is always the way to go when plotting (3).
+Package ggplot2 is always the way to go when plotting (Wickham, 2016).
 
 ```{r, message=F,warning=F}
 library(ggplot2) #load the package
