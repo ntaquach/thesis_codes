@@ -1,0 +1,117 @@
+---
+title: "PCA of Metric Data - Part B: 2009-2019"
+author: "Frank"
+date: "`r format(Sys.Date())`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.width=10, fig.height=8)
+```
+
+```{css, echo=FALSE}
+h1, h4 {
+  text-align: center;
+  color: black;
+  font-weight: bold;
+}
+
+/* Whole document: */
+body{
+  font-family: Times New Roman;
+  font-size: 16pt;
+}
+/* Headers */
+h1,h2,h3,h4,h5,h6{
+  font-size: 24pt;
+}
+
+<style type="text/css">
+body, td {
+   font-size: 16px;
+}
+code.r{
+  font-size: 16px;
+}
+pre {
+  font-size: 16px
+}
+</style>
+  
+```
+
+# Introduction
+
+These are the codes I used to run PCA for my metric data calculated using the MBSStools package (Leppo, 2021). Again, I welcome any feedback if there is any to further improve my codes.
+
+## Load data
+
+```{r message=F, warning=F}
+library(readxl)
+metric_data <- read_excel("~/thesis-codes/Part b (09-19)/Main Matrices No Zero.xlsx", 
+    sheet = "MetricIBI")
+```
+
+## Make a matrix from raw data
+
+```{r message=F,warning=F}
+metric_data_su <- metric_data[,4:ncol(metric_data)] #exclude the first column that contains SU information
+metric.pca <- princomp(metric_data_su, cor=T)
+summary(metric.pca)
+metric.pca$loadings #check the loading of each variable on each PC
+```
+
+## Plot Screeplot
+
+This step is optional. The previous step already showed you how many percentage of variance is explained by each PC. This is to visualize by using package factoextra (Kassambara and Mundt, 2020).
+
+```{r message=F,warning=F}
+library(factoextra)
+fviz_eig(metric.pca)
+```
+
+## Add columns of information to the result
+
+Another way to add columns to the existing dataset is to use pipes from the dplyr package (Wickham et al., 2022).
+
+```{r message=F, warning=F}
+library(dplyr) #load the package
+data.scores <- as.data.frame(metric.pca$scores[,1:2]) #extract NMDS scores
+data.scores.dplyr <- data.scores %>% mutate(Site = metric_data$Site,Year=metric_data$Year,
+                                            Subwatershed=metric_data$Subwatershed)
+head(data.scores.dplyr)
+```
+
+## Plot PCA graph
+
+```{r message=F, warning=F}
+library(ggplot2)
+
+ggplot(data.scores.dplyr,aes(Comp.1, Comp.2))+ 
+    geom_point(size = 4,aes( shape = as.character(Year))) +
+    theme(axis.text.y = element_text(colour = "black", size = 12, face = "bold"), 
+    axis.text.x = element_text(colour = "black", face = "bold", size = 12), 
+    legend.text = element_text(size = 12, face ="bold", colour ="black"), 
+    legend.position = "right", axis.title.y = element_text(face = "bold", size = 14), 
+    axis.title.x = element_text(face = "bold", size = 14, colour = "black"), 
+    legend.title = element_text(size = 14, colour = "black", face = "bold"), 
+    panel.background = element_blank(), panel.border = element_rect(colour = "black", fill = NA, size = 1.2),
+    legend.key=element_blank(),
+    plot.title = element_text(color = "black", size = 30, face = "bold", hjust = 0.5)) + 
+    labs(
+    title = "PCA graph of metrics and IBI scores") + 
+    theme(axis.title.x = element_text(margin=margin(t=10)), #add margin to x-axis title
+        axis.title.y = element_text(margin=margin(r=10)))+
+    labs(x = "PC1 (66.5%)", y = "PC2 (14.5%)", shape = "Year") 
+```
+
+
+
+
+# References
+1. Erik W. Leppo (2021). MBSStools: MBSS tool suite for calculations and data manipulation. R package
+  version 1.1.0.9053. https://github.com/leppott/MBSStools
+2. Alboukadel Kassambara and Fabian Mundt (2020). factoextra: Extract and Visualize the Results of
+  Multivariate Data Analyses. R package version 1.0.7. https://CRAN.R-project.org/package=factoextra
+3. Hadley Wickham, Romain François, Lionel Henry and Kirill Müller (2022). dplyr: A Grammar of Data
+  Manipulation. R package version 1.0.8. https://CRAN.R-project.org/package=dplyr
