@@ -61,7 +61,7 @@ density_wo_su_rel <- decostand(density_wo_su,method="total") #calculate relative
 
 ```{r,warning=F,message=F,results='hide'}
 set.seed(1)
-nmds_density <- metaMDS(density_wo_su_rel,distance="bray",maxit=999,trymax = 500,wascores = T,k=2)
+nmds_density <- metaMDS(density_wo_su_rel,distance="bray",maxit=999,trymax = 500,wascores = T,k=2,autotransform = F) #gotta put autotransform on FALSE so R won't transform your data when you don't want it to.
 ```
 
 ## Plot NMDS graph (standard method)
@@ -124,6 +124,16 @@ density_combined_graph <- ggplot(data.scores.dplyr, aes(x = NMDS1, y = NMDS2)) +
 density_combined_graph
 
 ```
+
+## Plot a Screeplot
+
+```{r message=F, warning=F,results='hide'}
+library(goeveg) #load package goeveg
+
+dimcheckMDS(density_wo_su_rel,distance = "bray",k=10,trymax=500,autotransform = F)
+
+```
+
 
 # References
 
