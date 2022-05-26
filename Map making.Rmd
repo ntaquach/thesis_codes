@@ -1,0 +1,62 @@
+---
+title: "Red Run Study Sites"
+author: "Frank"
+date: "`r format(Sys.Date())`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.width=10, fig.height=8)
+```
+
+```{css, echo=FALSE}
+h1, h4 {
+  text-align: center;
+  color: black;
+  font-weight: bold;
+}
+```
+
+# Introduction
+
+These are the codes I used to create an interactive map of my study area/sites in Red Run Watershed. All credit goes to Nicole Williamson - a graduate MS student who shared with me her codes so that I could replicate them. Check out her work [here.](https://williamson-nicole.github.io/Towson_Williamson/ "Nicole the GOAT")
+
+## Install and load the package "leaflet"
+
+```{r leaflet, message=F,warning=F}
+library (leaflet)
+```
+
+## Load latitude and longitude data
+
+```{r load data,warning=F,message=F}
+library(readxl)
+RR_benthic <- read_excel("F:/Thesis stuff/Data/Land cover data/Biological Sites/Benthos Site.xls")
+```
+
+## Load RR watershed's and subwatersheds' boundary polygon files
+
+```{r map creation, message=F,warning=F,results='hide'}
+library(rgdal) #load the package
+rr_boundary <- readOGR("F:/Thesis stuff/Data/Land cover data/RR Benthic Sites Raster/RR Site 1/layers/globalwatershed.shp",GDAL1_integer64_policy = T)
+b7_boundary <- readOGR("F:/Thesis stuff/Data/Land cover data/RR Benthic Sites Raster/RR Site 7/layers/globalwatershed.shp")
+b9a_boundary <- readOGR("F:/Thesis stuff/Data/Land cover data/RR Benthic Sites Raster/RR Site 9A/layers/globalwatershed.shp")
+b9_boundary <- readOGR("F:/Thesis stuff/Data/Land cover data/RR Benthic Sites Raster/RR Site 9/layers/globalwatershed.shp")
+```
+
+## Create the map
+
+```{r, message=F,warning=F}
+leaflet(RR_benthic) %>% 
+  addPolygons(data=rr_boundary,weight=5,col = '#b10026', smoothFactor = 0.5,
+    opacity = 1.0, fillOpacity = 0.5) %>% 
+  addPolygons(data=b7_boundary,weight=5,col = '#feb14c', smoothFactor = 0.5,
+    opacity = 1.0, fillOpacity = 0.5) %>% 
+  addPolygons(data=b9a_boundary,weight=5,col = '#fc4d2a', smoothFactor = 0.5,
+    opacity = 1.0, fillOpacity = 0.5) %>% 
+  addPolygons(data=b9_boundary,weight=5,col = '#ffeea1', smoothFactor = 0.5,
+    opacity = 1.0, fillOpacity = 0.5) %>% 
+  addProviderTiles(providers$Esri.NatGeoWorldMap) %>%
+  addTiles() %>% addScaleBar() %>% addMarkers(lng=~Long,lat=~Lat,popup = ~ Site) 
+```
+
