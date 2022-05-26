@@ -214,6 +214,19 @@ h1,h2,h3,h4,h5,h6{
   font-size: 24pt;
 }
 
+
+<style type="text/css">
+body, td {
+   font-size: 16px;
+}
+code.r{
+  font-size: 16px;
+}
+pre {
+  font-size: 16px
+}
+</style>
+  
 </style>
 <div id="introduction" class="section level1">
 <h1>Introduction</h1>
@@ -233,7 +246,7 @@ density_combined &lt;- read_excel(&quot;~/thesis-codes/Part a (87-09)/density_co
 <div id="make-a-matrix-from-abundance-data" class="section level2">
 <h2>Make a matrix from abundance data</h2>
 <pre class="r"><code>density_wo_su &lt;- density_combined[,4:ncol(density_combined)] #exclude the first column that contains SU information
-density_wo_su_rel &lt;- decostand(density_wo_su,method=&quot;total&quot;) #calculate relative abundance from abundance data</code></pre>
+density_wo_su_rel &lt;- as.matrix(decostand(density_wo_su,method=&quot;total&quot;)) #calculate relative abundance from abundance data</code></pre>
 </div>
 <div id="run-nmds" class="section level2">
 <h2>Run NMDS</h2>

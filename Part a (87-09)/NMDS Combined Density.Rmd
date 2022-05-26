@@ -26,6 +26,19 @@ h1,h2,h3,h4,h5,h6{
   font-size: 24pt;
 }
 
+
+<style type="text/css">
+body, td {
+   font-size: 16px;
+}
+code.r{
+  font-size: 16px;
+}
+pre {
+  font-size: 16px
+}
+</style>
+  
 ```
 
 # Introduction
@@ -54,7 +67,7 @@ density_combined <- read_excel("~/thesis-codes/Part a (87-09)/density_combined.x
 
 ```{r,warning=F,message=F}
 density_wo_su <- density_combined[,4:ncol(density_combined)] #exclude the first column that contains SU information
-density_wo_su_rel <- decostand(density_wo_su,method="total") #calculate relative abundance from abundance data
+density_wo_su_rel <- as.matrix(decostand(density_wo_su,method="total")) #calculate relative abundance from abundance data
 ```
 
 ## Run NMDS
