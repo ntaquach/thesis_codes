@@ -42,6 +42,8 @@ library(vegan)
 
 ## Load data
 
+Data can be found [here.](https://github.com/tquach123/thesis-codes "Frank's GitHub")
+
 ```{r, warning=F,message=F}
 library(readxl)
 density_combined <- read_excel("~/thesis-codes/density_combined.xlsx", 
