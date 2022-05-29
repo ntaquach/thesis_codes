@@ -115,7 +115,7 @@ wc_pca_plot
 The job now is to add some arrows that correspond to the "species" scores extract from above. 
 
 ```{r message=F,warning=F}
-wc_pca_plot + 
+wc_pca_biplot <- wc_pca_plot + 
   geom_segment(data=wc.scores, aes(x=0, xend=PC1, y=0, yend=PC2), 
                color="red", arrow=arrow(length=unit(0.01,"npc"))) + #add arrow
   geom_text(data=wc.scores, 
@@ -126,6 +126,8 @@ wc_pca_plot +
                 color = "black", size=1) + #add horizontal and vertical lines at 0
   geom_vline(xintercept=0, linetype="dashed", 
                 color = "black", size=1)
+
+ggsave("PCA WC Biplot.jpeg", wc_pca_biplot,width=15,height=8)
 ```
 
 # References
