@@ -54,7 +54,12 @@ wc <- read_excel("F:/Thesis stuff/Data Analysis/Part a (87-09)/PCA (Cl, Ca, SC)/
 ## Make a matrix from raw data
 
 ```{r message=F,warning=F}
-wc_wo_SU <- wc[,4:ncol(wc)] #exclude the first column that contains SU information
+wc_wo_SU <- wc[,4:ncol(wc)] #exclude the first columns that contains SU information
+#This dataframe includes all variables
+
+#wc_wo_SU <- wc[,4:6] #exclude the first columns that contains SU information
+#This data frame includes only Cl, Ca, SC (excluding nutrient parameters)
+
 m_wc <- as.matrix(wc_wo_SU)
 ```
 
@@ -126,6 +131,8 @@ wc_pca_biplot <- wc_pca_plot +
                 color = "black", size=1) + #add horizontal and vertical lines at 0
   geom_vline(xintercept=0, linetype="dashed", 
                 color = "black", size=1)
+
+wc_pca_biplot
 
 ggsave("PCA WC Biplot.jpeg", wc_pca_biplot,width=15,height=8)
 ```
