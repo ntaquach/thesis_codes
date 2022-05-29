@@ -78,7 +78,7 @@ Another way to add columns to the existing dataset is to use pipes from the dply
 
 ```{r message=F, warning=F}
 library(dplyr) #load the package
-data.scores <- as.data.frame(metric.pca$scores[,1:2]) #extract NMDS scores
+data.scores <- as.data.frame(metric.pca$scores[,1:2]) #extract PC scores
 data.scores.dplyr <- data.scores %>% mutate(Site = metric_data$Site,Year=metric_data$Year,
                                             Subwatershed=metric_data$Subwatershed)
 head(data.scores.dplyr)
