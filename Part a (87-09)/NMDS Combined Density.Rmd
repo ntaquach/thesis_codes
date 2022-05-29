@@ -132,8 +132,11 @@ density_combined_graph <- ggplot(data.scores.dplyr, aes(x = NMDS1, y = NMDS2)) +
     theme(axis.title.x = element_text(margin=margin(t=10)), #add margin to x-axis title
         axis.title.y = element_text(margin=margin(r=10)))+
     labs(x = "NMDS1", colour = "Subwatershed", y = "NMDS2", shape = "Year")  + 
-    scale_colour_manual(values = c("#b10026", "#feb14c","#ffeea1","#fc4d2a")) 
- 
+    scale_colour_manual(values = c("#b10026", "#feb14c","#ffeea1","#fc4d2a")) +
+    geom_text(aes(label=Site),hjust=-0.15, vjust=1.2)
+
+     scale_colour_manual(values = c("#9ecae1","#084594"))
+     
 density_combined_graph
 
 ```
