@@ -46,6 +46,8 @@ These are the codes I used to run PCA for my metric data calculated using the MB
 
 ## Load data
 
+Data can be found [here.](https://github.com/tquach123/thesis-codes "Frank's GitHub")
+
 ```{r message=F, warning=F}
 library(readxl)
 metric_data <- read_excel("~/thesis-codes/Part b (09-19)/Main Matrices No Zero.xlsx", 
@@ -102,7 +104,8 @@ ggplot(data.scores.dplyr,aes(Comp.1, Comp.2))+
     title = "PCA graph of metrics and IBI scores") + 
     theme(axis.title.x = element_text(margin=margin(t=10)), #add margin to x-axis title
         axis.title.y = element_text(margin=margin(r=10)))+
-    labs(x = "PC1 (66.5%)", y = "PC2 (14.5%)", shape = "Year") 
+    labs(x = "PC1 (66.5%)", y = "PC2 (14.5%)", shape = "Year") +
+    geom_text(aes(label=Site),hjust=-0.15, vjust=1)
 ```
 
 
