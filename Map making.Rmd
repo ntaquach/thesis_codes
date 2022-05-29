@@ -60,3 +60,4 @@ leaflet(RR_benthic) %>%
   addTiles() %>% addScaleBar() %>% addMarkers(lng=~Long,lat=~Lat,popup = ~ Site) 
 ```
 
+*Feedback and comments are welcome as my map does not look great at this moment. Check out this [site](https://rstudio.github.io/leaflet/ "Leaflet for R") to learn more about leaflet and perhaps you can make a better looking map.*
