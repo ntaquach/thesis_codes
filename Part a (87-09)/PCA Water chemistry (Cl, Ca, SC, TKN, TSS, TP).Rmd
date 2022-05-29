@@ -1,0 +1,142 @@
+---
+title: "PCA of Water Chemistry Data"
+author: "Frank"
+date: "`r format(Sys.Date())`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.width=10, fig.height=8)
+```
+
+```{css, echo=FALSE}
+h1, h4 {
+  text-align: center;
+  color: black;
+  font-weight: bold;
+}
+
+/* Whole document: */
+body{
+  font-family: Times New Roman;
+  font-size: 16pt;
+}
+/* Headers */
+h1,h2,h3,h4,h5,h6{
+  font-size: 24pt;
+}
+
+<style type="text/css">
+body, td {
+   font-size: 16px;
+}
+code.r{
+  font-size: 16px;
+}
+pre {
+  font-size: 16px
+}
+</style>
+  
+```
+
+# Introduction
+
+These are the codes I used to run PCA of my water chemistry data. Instead of using the princomp() function, I am going to try out the rda() function from the vegan package (Oksanen et al. 2012). Any comment is welcome. 
+
+## Load data
+
+```{r message=F, warning=F}
+library(readxl)
+wc <- read_excel("F:/Thesis stuff/Data Analysis/Part a (87-09)/PCA (Cl, Ca, SC)/Data for PCA.xlsx")
+```
+
+## Make a matrix from raw data
+
+```{r message=F,warning=F}
+wc_wo_SU <- wc[,4:ncol(wc)] #exclude the first column that contains SU information
+m_wc <- as.matrix(wc_wo_SU)
+```
+
+## Run PCA using rda() 
+
+```{r message=F,warning=F}
+library(vegan) #load the package
+wc.pca <- rda(m_wc,scale=T) #scale=T will standardize the variables
+summary(eigenvals(wc.pca)) #summarize eigenvalues and proportion explained by each PC
+```
+
+## Add columns of information to the result
+
+Another way to add columns to the existing dataset is to use pipes from the dplyr package (Wickham et al., 2022).
+
+```{r message=F, warning=F}
+
+library(dplyr) #load the package
+site.scores <- as.data.frame(scores(wc.pca,display = "sites")) #extract site scores
+site.scores.dplyr <- site.scores %>% mutate(Site = wc$Site,Year=wc$Year,
+                                            Subwatershed=wc$Subwatershed)
+head(site.scores.dplyr)
+
+wc.scores <- as.data.frame(scores(wc.pca,display = "species")) #extract "species" scores (in this case, score for each water chemistry variable)
+```
+
+## Plot PCA graph
+
+This is going to produce a PCA graph for water chemistry variables. See below for codes to produce a biplot to examine which water chemistry measurement is driving the changes/differences among sites.
+
+```{r message=F, warning=F}
+library(ggplot2)
+
+wc_pca_plot <- ggplot(site.scores.dplyr,aes(PC1, PC2))+ 
+    geom_point(size = 4,aes(color=Subwatershed, shape = as.character(Year))) +
+    theme(axis.text.y = element_text(colour = "black", size = 12, face = "bold"), 
+    axis.text.x = element_text(colour = "black", face = "bold", size = 12), 
+    legend.text = element_text(size = 12, face ="bold", colour ="black"), 
+    legend.position = "right", axis.title.y = element_text(face = "bold", size = 14), 
+    axis.title.x = element_text(face = "bold", size = 14, colour = "black"), 
+    legend.title = element_text(size = 14, colour = "black", face = "bold"), 
+    panel.background = element_blank(), panel.border = element_rect(colour = "black", fill = NA, size = 1.2),
+    legend.key=element_blank(),
+    plot.title = element_text(color = "black", size = 30, face = "bold", hjust = 0.5)) + 
+    labs(
+    title = "PCA graph of water chemistry measurements") + 
+    theme(axis.title.x = element_text(margin=margin(t=10)), #add margin to x-axis title
+        axis.title.y = element_text(margin=margin(r=10)))+
+    labs(x = "PC1 (65%)", y = "PC2 (23%)", shape = "Year") +
+    scale_colour_manual(values = c("#b10026", "#feb14c","#ffeea1","#fc4d2a")) +
+    geom_text(aes(label=Site),hjust=-0.15, vjust=1)
+
+wc_pca_plot
+```
+
+## Plot a PCA biplot
+
+The job now is to add some arrows that correspond to the "species" scores extract from above. 
+
+```{r message=F,warning=F}
+wc_pca_plot + 
+  geom_segment(data=wc.scores, aes(x=0, xend=PC1, y=0, yend=PC2), 
+               color="red", arrow=arrow(length=unit(0.01,"npc"))) + #add arrow
+  geom_text(data=wc.scores, 
+            aes(x=PC1,y=PC2,label=rownames(wc.scores),
+                hjust=0.5*(1-sign(PC1)),vjust=0.5*(1-sign(PC2))), 
+            color="red", size=4) + #add text to arrow
+  geom_hline(yintercept=0, linetype="dashed", 
+                color = "black", size=1) + #add horizontal and vertical lines at 0
+  geom_vline(xintercept=0, linetype="dashed", 
+                color = "black", size=1)
+```
+
+# References
+
+1. Jari Oksanen, Gavin L. Simpson, F. Guillaume Blanchet, Roeland Kindt, Pierre Legendre, Peter R. Minchin,
+  R.B. O'Hara, Peter Solymos, M. Henry H. Stevens, Eduard Szoecs, Helene Wagner, Matt Barbour, Michael
+  Bedward, Ben Bolker, Daniel Borcard, Gustavo Carvalho, Michael Chirico, Miquel De Caceres, Sebastien
+  Durand, Heloisa Beatriz Antoniazi Evangelista, Rich FitzJohn, Michael Friendly, Brendan Furneaux,
+  Geoffrey Hannigan, Mark O. Hill, Leo Lahti, Dan McGlinn, Marie-Helene Ouellette, Eduardo Ribeiro Cunha,
+  Tyler Smith, Adrian Stier, Cajo J.F. Ter Braak and James Weedon (2022). vegan: Community Ecology Package.
+  R package version 2.6-2. https://CRAN.R-project.org/package=vegan
+2. Hadley Wickham, Romain François, Lionel Henry and Kirill Müller (2022). dplyr: A Grammar of Data
+    Manipulation. R package version 1.0.8. https://CRAN.R-project.org/package=dplyr
+3. Hadley Wickham. ggplot2: Elegant Graphics for Data Analysis. Springer-Verlag New York, 2016.
