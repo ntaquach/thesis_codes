@@ -1,0 +1,116 @@
+---
+title: "Multiple Regression of WC and NMDS scores"
+author: "Frank"
+date: "`r format(Sys.Date())`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.width=10, fig.height=8)
+```
+
+```{css, echo=FALSE}
+h1, h4 {
+  text-align: center;
+  color: black;
+  font-weight: bold;
+}
+
+/* Whole document: */
+body{
+  font-family: Times New Roman;
+  font-size: 16pt;
+}
+/* Headers */
+h1,h2,h3,h4,h5,h6{
+  font-size: 24pt;
+}
+
+<style type="text/css">
+body, td {
+   font-size: 16px;
+}
+code.r{
+  font-size: 16px;
+}
+pre {
+  font-size: 16px
+}
+</style>
+  
+```
+
+# Introduction
+
+These are the codes I used to run the multiple regression analysis on the correlations between axis 1/2 scores and water chemistry measurements from B1, B5, B7, B9, and B9A, which correspond to five water sampling stations designated by the Baltimore County.
+
+## Edit and organize data
+
+I am going to use data from data.scores.dplyr (Check my NMDS Combined Density) and from wc (Check my PCA Water Chemistry). I will use *dplyr* package to combine and filter data to fit purpose.
+
+### Data for later use
+
+```{r message=FALSE,warning=F}
+library(readxl)
+wc <- read_excel("F:/Thesis stuff/Data Analysis/Part a (87-09)/PCA (Cl, Ca, SC)/Data for PCA.xlsx")
+data.scores.dplyr <- read_excel("C:/Users/tiena/OneDrive/Documents/thesis-codes/Part a (87-09)/Multiple regression between WC and axis scores/NMDS scores-dplyr.xlsx")
+```
+
+
+```{r message=F,warning=F}
+library(dplyr)
+wc_dplyr <- wc %>% filter(!row_number() %in% c(6,12)) %>% group_by(Year) %>% arrange(match(Site,c("RR1","RR2","RR5","RR4","RR3"))) 
+
+#delete row 6 and 12 that contains data from RR6, which does not match with any benthic site 
+#rearrange rows so that water quality sites will match benthic sites
+
+mp_data <- data.scores.dplyr %>% filter(!row_number() %in% c(2,3, 4,7,10,12,13,14,17,20)) %>% arrange(match(Site,c("B1","B5","B7","B9","B9A"))) %>% relocate(Site, Year, Subwatershed) %>% mutate(TSS=wc_dplyr$TSS,TKN=wc_dplyr$TKN,TP=wc_dplyr$TP,
+                           Cl=wc_dplyr$Cl,Ca=wc_dplyr$Ca,SC=wc_dplyr$SC) 
+#remove rows that contain data from benthic sites that do not match with water quality sites 
+#rearrange sites
+#add columns of WC data using mutate function
+#relocate Site, Year, Subwatershed columns to the front; you can use relocate(column a, .after=column b) => this will put column a after column b
+```
+
+Now that the data are ready to be used. The rest is easy and straighforward. 
+
+## Conduct multiple regression
+
+### NMDS Axis 1 score vs WC
+
+```{r message=F,warning=F}
+axis1_mp_salinity <- lm(data=mp_data,NMDS1~Cl+SC)
+summary(axis1_mp_salinity)
+
+axis1_mp_nutrient <- lm(data=mp_data,NMDS1~TKN+TP+TSS)
+summary(axis1_mp_nutrient)
+
+axis1_mp <- lm(data=mp_data, NMDS1~Cl+SC+Ca+TKN+TP+TSS)
+summary(axis1_mp) #Ca is significant in this model
+```
+
+### NMDS Axis 2 score vs WC
+
+```{r message=F,warning=F}
+axis2_mp_salinity <- lm(data=mp_data,NMDS2~Cl+SC)
+summary(axis2_mp_salinity)
+
+axis2_mp_nutrient <- lm(data=mp_data,NMDS2~TKN+TP+TSS)
+summary(axis2_mp_nutrient) #Intercept significant
+
+axis2_mp <- lm(data=mp_data, NMDS2~Cl+SC+Ca+TKN+TP+TSS)
+summary(axis2_mp)
+```
+
+# References
+
+1. Jari Oksanen, Gavin L. Simpson, F. Guillaume Blanchet, Roeland Kindt, Pierre Legendre, Peter R. Minchin,
+  R.B. O'Hara, Peter Solymos, M. Henry H. Stevens, Eduard Szoecs, Helene Wagner, Matt Barbour, Michael
+  Bedward, Ben Bolker, Daniel Borcard, Gustavo Carvalho, Michael Chirico, Miquel De Caceres, Sebastien
+  Durand, Heloisa Beatriz Antoniazi Evangelista, Rich FitzJohn, Michael Friendly, Brendan Furneaux,
+  Geoffrey Hannigan, Mark O. Hill, Leo Lahti, Dan McGlinn, Marie-Helene Ouellette, Eduardo Ribeiro Cunha,
+  Tyler Smith, Adrian Stier, Cajo J.F. Ter Braak and James Weedon (2022). vegan: Community Ecology Package.
+  R package version 2.6-2. https://CRAN.R-project.org/package=vegan
+2. Hadley Wickham, Romain François, Lionel Henry and Kirill Müller (2022). dplyr: A Grammar of Data
+  Manipulation. R package version 1.0.8. https://CRAN.R-project.org/package=dplyr
+3. Hadley Wickham. ggplot2: Elegant Graphics for Data Analysis. Springer-Verlag New York, 2016.
