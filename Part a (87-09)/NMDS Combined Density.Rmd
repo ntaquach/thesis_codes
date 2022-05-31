@@ -106,6 +106,8 @@ library(dplyr) #load the package
 data.scores <- as.data.frame(scores(nmds_density)$sites) #extract NMDS scores
 data.scores.dplyr <- data.scores %>% mutate(Site = density_combined$Site,Year=density_combined$Year,
                                             Subwatershed=density_combined$Subwatershed)
+library(writexl)
+write_xlsx(data.scores.dplyr,"C:/Users/tiena/OneDrive/Documents/thesis-codes/Part a (87-09)/Multiple regression between WC and axis scores/NMDS scores-dplyr.xlsx")
 head(data.scores.dplyr)
 ```
 
@@ -135,9 +137,9 @@ density_combined_graph <- ggplot(data.scores.dplyr, aes(x = NMDS1, y = NMDS2)) +
     scale_colour_manual(values = c("#b10026", "#feb14c","#ffeea1","#fc4d2a")) +
     geom_text(aes(label=Site),hjust=-0.15, vjust=1.2)
 
-     scale_colour_manual(values = c("#9ecae1","#084594"))
-     
 density_combined_graph
+
+ggsave("Combined Density NMDS.jpeg",density_combined_graph,width=15,height=8)
 
 ```
 
