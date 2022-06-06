@@ -61,6 +61,10 @@ wc_wo_SU <- wc[,4:ncol(wc)] #exclude the first columns that contains SU informat
 #This data frame includes only Cl, Ca, SC (excluding nutrient parameters)
 
 m_wc <- as.matrix(wc_wo_SU)
+
+library(moments) #load moments package to check for kurtosis and skewness
+skewness(m_wc)
+kurtosis(m_wc)
 ```
 
 ## Run PCA using rda() 
