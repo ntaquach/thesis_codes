@@ -101,6 +101,33 @@ summary(axis2_mp_nutrient) #Intercept significant
 axis2_mp <- lm(data=mp_data, NMDS2~Cl+SC+Ca+TKN+TP+TSS)
 summary(axis2_mp)
 ```
+# Simple Linear Regression
+
+I am going to examine the linear regression between NMDS1/2 and one water chemistry variable at a time.
+
+## Axis 1
+
+```{r message=F,warning=F}
+summary(lm(NMDS1~Cl,data=mp_data)) #significant
+summary(lm(NMDS1~SC,data=mp_data)) #significant
+summary(lm(NMDS1~Ca,data=mp_data))
+
+summary(lm(NMDS1~TKN,data=mp_data))
+summary(lm(NMDS1~TSS,data=mp_data))
+summary(lm(NMDS1~TP,data=mp_data))
+```
+
+## Axis 2
+
+```{r message=F,warning=F}
+summary(lm(NMDS2~Cl,data=mp_data)) 
+summary(lm(NMDS2~SC,data=mp_data)) 
+summary(lm(NMDS2~Ca,data=mp_data))
+
+summary(lm(NMDS2~TKN,data=mp_data))
+summary(lm(NMDS2~TSS,data=mp_data))
+summary(lm(NMDS2~TP,data=mp_data)) #significant
+```
 
 # References
 
