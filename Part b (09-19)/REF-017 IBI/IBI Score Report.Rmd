@@ -1,0 +1,116 @@
+---
+title: "IBI Score Report - REF-017 - Part 2"
+author: "Frank"
+date: "`r format(Sys.Date())`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.width=18, fig.height=12)
+```
+
+```{css, echo=FALSE}
+h1, h4 {
+  text-align: center;
+  color: black;
+  font-weight: bold;
+}
+
+/* Whole document: */
+body{
+  font-family: Times New Roman;
+  font-size: 16pt;
+}
+/* Headers */
+h1,h2,h3,h4,h5,h6{
+  font-size: 24pt;
+}
+
+<style type="text/css">
+body, td {
+   font-size: 16px;
+}
+code.r{
+  font-size: 16px;
+}
+pre {
+  font-size: 16px
+}
+</style>
+  
+```
+
+# Introduction
+
+These are codes I used to generate IBI scores for REF-017 using the *MBSStools* package (Leppott 2020).
+
+## Set up parameters
+
+```{r message=F,warning=F}
+library("MBSStools")
+
+# Metrics, Index, Benthic Macroinvertebrates, genus
+# (generate values then scores)
+myIndex <- "MBSS.2005.Bugs"
+# Thresholds
+thresh <- metrics_scoring
+# get metric names for myIndex
+(myMetrics.Bugs.MBSS <- as.character(droplevels(unique(thresh[thresh[,"Index.Name"]==myIndex,"MetricName.Other"]))))
+# Add Narrative
+myBreaks <- c(1:5)
+myLabels <- c("Very Poor", "Poor", "Fair", "Good")
+
+```
+
+## Load data
+
+```{r message=F,warning=F}
+library(readxl)
+ref017 <- read_excel("F:/One Drive - Towson U/Thesis stuff/Data/Benthic data/D-net (MBSS)/IBI scores from MBSS package/REF-017/R benthic data REF017.xlsx", 
+    sheet = "Combine")
+```
+
+## Calculate metrics and IBI scores
+
+```{r message=F,warning=F}
+ref017_metric <- metric.values(ref017, "bugs",myMetrics.Bugs.MBSS)
+ref017_metric #metric scores
+
+# SCORE
+ref017_metric_scores <- metric.scores(ref017_metric,myMetrics.Bugs.MBSS, "INDEX.NAME", "STRATA_R", thresh)
+# View Results
+ref017_metric_scores #IBI scores
+
+# Add Narrative
+ref017_metric_scores$IBI_Nar <- cut(ref017_metric_scores$IBI
+                                     , breaks=myBreaks
+                                     , labels=myLabels
+                                     , include.lowest=TRUE
+                                     , right=FALSE
+                                     , ordered_result=TRUE)
+# QC, IBI Numeric vs. Narrative
+table(ref017_metric_scores$IBI
+      , ref017_metric_scores$IBI_Nar
+      , useNA="ifany")
+ref017_metric_scores
+```
+
+### Table of IBI scores with edited column names
+
+```{r,message=F,warning=F}
+library(dplyr)
+library(DT)
+ibi_table_select <- ref017_metric_scores %>% select(SITE,ntaxa,nept,nephem,pintol_urb,pchiron,pcling,IBI,IBI_Nar)
+datatable(ibi_table_select,rownames = F,  options= list(scrollX = TRUE, pageLength = nrow(ibi_table_select), dom='t'), selection = 'none',  
+          colnames = c('Site' = 'SITE', 'Number of taxa' = 'ntaxa',
+                                               'Number of EPT taxa'='nept','Number of Ephemeroptera taxa'='nephem',
+                                               'Percent intolerant urban taxa'='pintol_urb', 
+                                               'Percent Chironomidae'='pchiron','Percent Clinger'='pcling'),
+          caption = htmltools::tags$caption(
+    style = 'caption-side: bottom; text-align: center;',
+    'Table 1. Metric values and IBI scores from REF-017 in Red Run from 2009 to 2019')
+  )
+
+```
+
+*Note: Percent Chironomidae are incorrectly calculated in 2013 by the MBSStools package.*
