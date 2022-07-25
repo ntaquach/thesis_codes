@@ -1,0 +1,161 @@
+---
+title: "NMDS (Count)"
+author: "Frank"
+date: "`r format(Sys.Date())`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.width=15, fig.height=8)
+```
+
+```{css, echo=FALSE}
+h1, h4 {
+  text-align: center;
+  color: black;
+  font-weight: bold;
+}
+
+/* Whole document: */
+body{
+  font-family: Times New Roman;
+  font-size: 16pt;
+}
+/* Headers */
+h1,h2,h3,h4,h5,h6{
+  font-size: 24pt;
+}
+
+<style type="text/css">
+body, td {
+   font-size: 16px;
+}
+code.r{
+  font-size: 16px;
+}
+pre {
+  font-size: 16px
+}
+</style>
+  
+```
+
+# Introduction
+
+These are codes I used to run NMDS on Count data collected by the BC DEPS at several benthic sites after 2009. 
+
+## Load the package
+
+Package vegan is the package in R that you can use to run multivariate analyses (Oksanen et al., 2022).
+
+```{r,warning=F,message=F}
+library(vegan)
+```
+
+## Load data
+
+Data can be found [here.](https://github.com/tquach123/thesis-codes "Frank's GitHub")
+
+```{r, warning=F,message=F}
+library(readxl)
+count_combined <- read_excel("F:/GitHub Projects/thesis-codes/Part b (09-19)/NMDS (Count) - B1, 7 ,10, REF 12-19/count_combined.xlsx", 
+    sheet = "Final")
+```
+
+## Clean up data
+
+Since the data set contains a lot of columns with zeros, it is essential to clean up all zeros to have a clean data set. 
+
+```{r message=F,warning=F}
+count_nozero <- count_combined[, colSums(count_combined != 0) > 0]
+
+#Another way is to use dplyr 
+
+library(dplyr)
+count_nozero_dplyr <- count_combined %>% select(where(~ any(. != 0))) #this will yield the same file
+
+#Write out a non-zero file to use for later. I will use PC-ORD v9 to cross check NMDS outputs
+library("writexl")
+
+write_xlsx(count_nozero,"F:/One Drive - Towson U/Thesis stuff/Data Analysis/Part b (2009 - recent)/count_nozero.xlsx")
+
+```
+
+## New Count Zero (No Genus-level Chironomidae)
+
+Edit: Previous dataset has a mix of genus-level and family-level individuals of Chironomidae.
+
+```{r message=F,warning=F}
+library(readxl)
+count_nozero <- read_excel("F:/One Drive - Towson U/Thesis stuff/Data Analysis/Part b (2009 - recent)/count_nozero.xlsx", 
+    sheet = "R CHIRAE F")
+
+```
+
+## Make a matrix from count data
+
+```{r,warning=F,message=F}
+count_wo_su <- count_nozero[,4:ncol(count_nozero)] #exclude the first few columns that contains SU information
+```
+
+## Run NMDS
+
+```{r,warning=F,message=F,results='hide'}
+set.seed(1)
+nmds_count <- metaMDS(count_wo_su,distance="bray",maxit=999,trymax = 500,wascores = T,k=2,autotransform = F) #gotta put autotransform on FALSE so R won't transform your data when you don't want it to.
+```
+
+## Add back SU columns
+
+```{r message=F, warning=F}
+library(dplyr) #load the package
+data.scores <- as.data.frame(scores(nmds_count)$sites) #extract NMDS scores
+data.scores.dplyr <- data.scores %>% mutate(Site = count_nozero$Site,Year=count_nozero$Year,
+                                            Subwatershed=count_nozero$Subwatershed)
+
+```
+
+## Plot the graph using ggplot2
+
+```{r, message=F,warning=F}
+library(ggplot2) #load the package
+
+count_part2_graph <- ggplot(data.scores.dplyr, aes(x = NMDS1, y = NMDS2)) + 
+    geom_point(size = 4,aes( shape = as.factor(Year), colour = Subwatershed))+ # geom_polygon(data=data.scores.dplyr,aes(x=NMDS1,y=NMDS2,group=Subwatershed),alpha=0.30); this is to add a little convex polygon to visualize the clusters better. You can try to see how it looks. 
+    theme(axis.text.y = element_text(colour = "black", size = 20, face = "bold"), 
+    axis.text.x = element_text(colour = "black", face = "bold", size = 20), 
+    legend.text = element_text(size = 18, face ="bold", colour ="black"), 
+    legend.position = "right", axis.title.y = element_text(face = "bold", size = 14), 
+    axis.title.x = element_text(face = "bold", size = 25, colour = "black"), 
+    axis.title.y.left = element_text(face = "bold", size = 25, colour = "black"),
+    legend.title = element_text(size = 20, colour = "black", face = "bold"), 
+    panel.background = element_blank(), panel.border = element_rect(colour = "black", fill = NA, size = 1.2),
+    legend.key=element_blank(),
+    plot.title = element_text(color = "black", size = 30, face = "bold", hjust = 0.5)) + 
+    labs(
+    title = "NMDS graph of Part B Count") + 
+    theme(axis.title.x = element_text(margin=margin(t=10)), #add margin to x-axis title
+        axis.title.y = element_text(margin=margin(r=10)))+
+    labs(x = "NMDS1", colour = "Sub-watershed", y = "NMDS2", shape = "Year")  + 
+    scale_colour_manual(values = c("#b10026", "#feb14c","#ffeea1","#fc4d2a")) +
+    geom_text(aes(label=Site),hjust=0.4, vjust=1.35,size=7) + 
+    geom_hline(yintercept=0, linetype="dashed", 
+                color = "black", size=1) + #add horizontal and vertical lines at 0
+    geom_vline(xintercept=0, linetype="dashed", 
+                color = "black", size=1)  
+
+
+count_part2_graph
+
+ggsave("Part 2 Count NMDS (B1, 7, 10, REF - only CHIRAE).jpeg",count_part2_graph,width=15,height=8)
+
+```
+
+## Plot a Screeplot
+
+```{r message=F, warning=F,results='hide'}
+library(goeveg) #load package goeveg
+
+dimcheckMDS(density_wo_su_rel,distance = "bray",k=10,trymax=500,autotransform = F)
+
+```
