@@ -59,7 +59,7 @@ Data can be found [here.](https://github.com/tquach123/thesis-codes "Frank's Git
 ```{r, warning=F,message=F}
 library(readxl)
 count_combined <- read_excel("F:/GitHub Projects/thesis-codes/Part b (09-19)/NMDS (Count) - B1, 7 ,10, REF 12-19/count_combined.xlsx", 
-    sheet = "Final")
+    sheet = "R CHIRAE F")
 ```
 
 ## Clean up data
@@ -78,17 +78,6 @@ count_nozero_dplyr <- count_combined %>% select(where(~ any(. != 0))) #this will
 library("writexl")
 
 write_xlsx(count_nozero,"F:/One Drive - Towson U/Thesis stuff/Data Analysis/Part b (2009 - recent)/count_nozero.xlsx")
-
-```
-
-## New Count Zero (No Genus-level Chironomidae)
-
-Edit: Previous dataset has a mix of genus-level and family-level individuals of Chironomidae.
-
-```{r message=F,warning=F}
-library(readxl)
-count_nozero <- read_excel("F:/One Drive - Towson U/Thesis stuff/Data Analysis/Part b (2009 - recent)/count_nozero.xlsx", 
-    sheet = "R CHIRAE F")
 
 ```
 
@@ -156,6 +145,6 @@ ggsave("Part 2 Count NMDS (B1, 7, 10, REF - only CHIRAE).jpeg",count_part2_graph
 ```{r message=F, warning=F,results='hide'}
 library(goeveg) #load package goeveg
 
-dimcheckMDS(density_wo_su_rel,distance = "bray",k=10,trymax=500,autotransform = F)
+dimcheckMDS(count_wo_su,distance = "bray",k=10,trymax=500,autotransform = F)
 
 ```
