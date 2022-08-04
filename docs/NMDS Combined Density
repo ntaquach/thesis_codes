@@ -1,0 +1,167 @@
+---
+title: "NMDS Combined Density"
+author: "Frank"
+date: "`r format(Sys.Date())`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.width=10, fig.height=8)
+```
+
+```{css, echo=FALSE}
+h1, h4 {
+  text-align: center;
+  color: black;
+  font-weight: bold;
+}
+
+/* Whole document: */
+body{
+  font-family: Times New Roman;
+  font-size: 16pt;
+}
+/* Headers */
+h1,h2,h3,h4,h5,h6{
+  font-size: 24pt;
+}
+
+
+<style type="text/css">
+body, td {
+   font-size: 16px;
+}
+code.r{
+  font-size: 16px;
+}
+pre {
+  font-size: 16px
+}
+</style>
+  
+```
+
+# Introduction
+
+These are the codes I used to run an NMDS for the density of benthic macroinvertebrate collected at ten sites in Red Run watershed in four seasons/months in 1987-1988 and 2009. Credit goes to Dr. Jackie Zorz. Check out her work [here.](https://www.researchgate.net/profile/Jackie-Zorz "Dr. Zorz")
+
+## Load the package
+
+Package vegan is the package in R that you can use to run multivariate analyses (Oksanen et al., 2022).
+
+```{r,warning=F,message=F}
+library(vegan)
+```
+
+## Load data
+
+Data can be found [here.](https://github.com/tquach123/thesis-codes "Frank's GitHub")
+
+```{r, warning=F,message=F}
+library(readxl)
+density_combined <- read_excel("~/thesis-codes/Part a (87-09)/density_combined.xlsx", 
+     sheet = "Final")
+```
+
+## Make a matrix from abundance data
+
+```{r,warning=F,message=F}
+density_wo_su <- density_combined[,4:ncol(density_combined)] #exclude the first column that contains SU information
+density_wo_su_rel <- as.matrix(decostand(density_wo_su,method="total")) #calculate relative abundance from abundance data
+```
+
+## Run NMDS
+
+```{r,warning=F,message=F,results='hide'}
+set.seed(1)
+nmds_density <- metaMDS(density_wo_su_rel,distance="bray",maxit=999,trymax = 500,wascores = T,k=2,autotransform = F) #gotta put autotransform on FALSE so R won't transform your data when you don't want it to.
+```
+
+## Plot NMDS graph (standard method)
+
+Don't go with this method. See below for a much better looking NMDS graph. 
+
+```{r, warning=F,message=F}
+plot(nmds_density)
+```
+
+## Add columns of Site, Subwatershed, and Year
+
+This way, I have different Sites, which belong to different sub-watersheds and years. Thus, those sites on the NMDS graph will look distinct, which makes it easier to separate the clusters/groups.
+
+```{r warning=F,message=F}
+data.scores <- as.data.frame(scores(nmds_density)$sites) #extract NMDS scores
+data.scores$Site <- density_combined$Site #add a Site column
+data.scores$Year <- density_combined$Year
+data.scores$Subwatershed <- density_combined$Subwatershed
+head(data.scores) #check the data
+```
+
+## Another way to add columns
+
+Another way to add columns to the existing dataset is to use pipes from the dplyr package (Wickham et al., 2022).
+
+```{r message=F, warning=F}
+library(dplyr) #load the package
+data.scores <- as.data.frame(scores(nmds_density)$sites) #extract NMDS scores
+data.scores.dplyr <- data.scores %>% mutate(Site = density_combined$Site,Year=density_combined$Year,
+                                            Subwatershed=density_combined$Subwatershed)
+library(writexl)
+write_xlsx(data.scores.dplyr,"C:/Users/tiena/OneDrive/Documents/thesis-codes/Part a (87-09)/Multiple regression between WC and axis scores/NMDS scores-dplyr.xlsx")
+head(data.scores.dplyr)
+```
+
+## Plot the graph using ggplot2
+
+Package ggplot2 is always the way to go when plotting (Wickham, 2016).
+
+```{r, message=F,warning=F}
+library(ggplot2) #load the package
+
+density_combined_graph <- ggplot(data.scores.dplyr, aes(x = NMDS1, y = NMDS2)) + 
+    geom_point(size = 4,aes( shape = Year, colour = Subwatershed))+ # geom_polygon(data=data.scores.dplyr,aes(x=NMDS1,y=NMDS2,group=Subwatershed),alpha=0.30); this is to add a little convex polygon to visualize the clusters better. You can try to see how it looks. 
+    theme(axis.text.y = element_text(colour = "black", size = 12, face = "bold"), 
+    axis.text.x = element_text(colour = "black", face = "bold", size = 12), 
+    legend.text = element_text(size = 12, face ="bold", colour ="black"), 
+    legend.position = "right", axis.title.y = element_text(face = "bold", size = 14), 
+    axis.title.x = element_text(face = "bold", size = 14, colour = "black"), 
+    legend.title = element_text(size = 14, colour = "black", face = "bold"), 
+    panel.background = element_blank(), panel.border = element_rect(colour = "black", fill = NA, size = 1.2),
+    legend.key=element_blank(),
+    plot.title = element_text(color = "black", size = 30, face = "bold", hjust = 0.5)) + 
+    labs(
+    title = "NMDS graph of combined density") + 
+    theme(axis.title.x = element_text(margin=margin(t=10)), #add margin to x-axis title
+        axis.title.y = element_text(margin=margin(r=10)))+
+    labs(x = "NMDS1", colour = "Subwatershed", y = "NMDS2", shape = "Year")  + 
+    scale_colour_manual(values = c("#b10026", "#feb14c","#ffeea1","#fc4d2a")) +
+    geom_text(aes(label=Site),hjust=-0.15, vjust=1.2)
+
+density_combined_graph
+
+ggsave("Combined Density NMDS.jpeg",density_combined_graph,width=15,height=8)
+
+```
+
+## Plot a Screeplot
+
+```{r message=F, warning=F,results='hide'}
+library(goeveg) #load package goeveg
+
+dimcheckMDS(density_wo_su_rel,distance = "bray",k=10,trymax=500,autotransform = F)
+
+```
+
+
+# References
+
+1. Jari Oksanen, Gavin L. Simpson, F. Guillaume Blanchet, Roeland Kindt, Pierre Legendre, Peter R. Minchin,
+  R.B. O'Hara, Peter Solymos, M. Henry H. Stevens, Eduard Szoecs, Helene Wagner, Matt Barbour, Michael
+  Bedward, Ben Bolker, Daniel Borcard, Gustavo Carvalho, Michael Chirico, Miquel De Caceres, Sebastien
+  Durand, Heloisa Beatriz Antoniazi Evangelista, Rich FitzJohn, Michael Friendly, Brendan Furneaux,
+  Geoffrey Hannigan, Mark O. Hill, Leo Lahti, Dan McGlinn, Marie-Helene Ouellette, Eduardo Ribeiro Cunha,
+  Tyler Smith, Adrian Stier, Cajo J.F. Ter Braak and James Weedon (2022). vegan: Community Ecology Package.
+  R package version 2.6-2. https://CRAN.R-project.org/package=vegan
+2. Hadley Wickham, Romain François, Lionel Henry and Kirill Müller (2022). dplyr: A Grammar of Data
+  Manipulation. R package version 1.0.8. https://CRAN.R-project.org/package=dplyr
+3. Hadley Wickham. ggplot2: Elegant Graphics for Data Analysis. Springer-Verlag New York, 2016.
