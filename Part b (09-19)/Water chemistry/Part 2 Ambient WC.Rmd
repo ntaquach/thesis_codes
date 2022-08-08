@@ -1,0 +1,176 @@
+---
+title: "Part 2 Ambient WC"
+author: "Frank"
+date: "`r format(Sys.Date())`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.width=18, fig.height=12)
+```
+
+```{css, echo=FALSE}
+h1, h4 {
+  text-align: center;
+  color: black;
+  font-weight: bold;
+}
+
+/* Whole document: */
+body{
+  font-family: Times New Roman;
+  font-size: 16pt;
+}
+/* Headers */
+h1,h2,h3,h4,h5,h6{
+  font-size: 24pt;
+}
+
+<style type="text/css">
+body, td {
+   font-size: 16px;
+}
+code.r{
+  font-size: 16px;
+}
+pre {
+  font-size: 16px
+}
+</style>
+  
+```
+
+# Introduction
+
+These are codes to analyze and explore patterns in part 2 ambient water chemistry data. 
+
+## Import data
+
+```{r message=F,warning=F}
+library(readxl)
+partb_wc <- read_excel("F:/One Drive - Towson U/Thesis stuff/Data/Water chemistry data/Part b WC data/Ambient WC data.xlsx", 
+    sheet = "Combined")
+```
+
+# Range of data
+
+First, let's summarize the data. 
+
+```{r message=F,warning=F}
+library(dplyr)
+partb_wc %>% summary()
+```
+
+# Investigate the relationship between pH and %Do
+
+The relationship between %Do and pH is expected to be positive. As more photosynthesis happens in stream, more CO2 is pumped out, which then leads to higher %Do and higher pH. Let's investigate to see if the relationship holds. 
+
+```{r message=F,warning=F}
+library(dplyr)
+ph_do_clean <- as.data.frame(partb_wc) %>% 
+  rename(c(Temp=`Temp (C)`, SC = `SC (mS/cm)`, TSS = `TSS (ppm)`, 
+          DO_ppm = `DO (ppm)`, DO_p =  `DO (%)`, Sal =  `Salinity (ppt)`)) %>% 
+  filter(!is.na(DO_p)) # (1) rename columns; (2) filter NA data from DO column; 
+
+cor.test(ph_do_clean$pH,ph_do_clean$DO_p, method = "pearson") #correlational test between pH and DO using Pearson cor
+cor.test(ph_do_clean$pH,ph_do_clean$DO_p, method = "spearman") #correlational test between pH and DO using Spearman cor
+
+library(ggplot2)
+ph_do_clean %>% ggplot(aes(pH, DO_p)) + geom_point()
+```
+
+In conclusion, pH and %DO have no correlation with each other in this data set, since there seems to be some extreme values. 
+
+# Create a matrix of scatterplots
+
+## Pearson
+
+These codes were used to create a scatterplot matrix (Pearson's correlation) using the package GGally (Schloerke et al. 2021). 
+
+```{r message=F, warning=F}
+library(dplyr)
+library(GGally)
+
+lowerFn <- function(data, mapping, method = "lm", ...) {
+  p <- ggplot(data = data, mapping = mapping) +
+    geom_point(colour = "blue") +
+    geom_smooth(method = method, color = "red", ...)
+  p
+} #code adopted from WCC - an user on Stack Overflow. Check out his profile here: https://stackoverflow.com/users/1102552/wcc.
+
+wc_clean <- partb_wc %>% rename(c(Temp=`Temp (C)`, SC = `SC (mS/cm)`, TSS = `TSS (ppm)`, 
+          DO_ppm = `DO (ppm)`, DO_p =  `DO (%)`, Sal =  `Salinity (ppt)`)) %>% 
+  filter(!is.na(SC) & !is.na(TSS) & !is.na(DO_p)) 
+
+wc_clean %>% 
+  ggpairs(columns = c("Temp","SC","TSS","DO_ppm","DO_p","pH","Sal"), 
+          lower = list(continuous = wrap(lowerFn, method = "lm")),
+  diag = list(continuous = wrap("barDiag", colour = "blue")),
+  upper = list(continuous = wrap("cor", size = 10))
+) +  theme(axis.text.y = element_text(colour = "black", size = 12, face = "bold"), 
+    axis.text.x = element_text(colour = "black", face = "bold", size = 12), 
+    legend.text = element_text(size = 12, face ="bold", colour ="black"), 
+    axis.title.x = element_text(face = "bold", size = 14, colour = "black"), 
+    legend.title = element_text(size = 14, colour = "black", face = "bold"), 
+    panel.background = element_blank(), panel.border = element_rect(colour = "black", fill = NA, size = 1.2),
+    legend.key=element_blank(),
+    plot.title = element_text(color = "black", size = 30, face = "bold", hjust = 0.5)) + 
+   labs(
+    title = "Correlation matrix of ambient WC (Pearson)")
+  
+```
+
+## Spearman
+
+Previous codes will be modified to display Spearman correlation. For now, traditional method will be applied. Package *corrr* (Kuhn et al. 2020) will be used to test for significant correlations among variables.
+
+```{r message=F,warning=F}
+library(corrr)
+
+wc_cor <- wc_clean[,3:ncol(wc_clean)] %>% correlate(use = "pairwise.complete.obs", method = "spearman") %>% 
+  select(Temp, SC, TSS, DO_ppm, DO_p, pH, Sal) %>% mutate(Variable = c(1,2,3,4,5,6,7), .before = Temp)
+wc_cor$Variable <- recode(wc_cor$Variable, 
+                          "1" = "Temp", 
+                          "2" = "SC",
+                          "3" = "TSS",
+                          "4" = "DO_ppm",
+                          "5" = "DO_p",
+                          "6" = "pH",
+                          "7" = "Sal")
+wc_cor
+```
+
+Another way of doing this, but will also give you a correlation and p-value matrix. Package *rstatix* will be used (Kassambara 2021.)
+
+```{r message=F,warning=F}
+library(rstatix)
+options(digits = 3)   # report 3 significant digits
+wc_clean[,3:ncol(wc_clean)] %>% cor_mat(Temp, SC, TSS, DO_ppm, DO_p, pH, Sal, method = "spearman") %>% cor_get_pval()
+```
+## Temp vs pH
+
+It seems like the relationship between water temperature and pH is a little odd. In the previous code chunk, NA data were removed, thus, led to some temperature and pH data being removed as well. Now I am testing correlation between temp vs pH alone.
+
+```{r message=F,warning=F}
+library(dplyr)
+temp_ph <- as.data.frame(partb_wc) %>% 
+  rename(c(Temp=`Temp (C)`, SC = `SC (mS/cm)`, TSS = `TSS (ppm)`, 
+          DO_ppm = `DO (ppm)`, DO_p =  `DO (%)`, Sal =  `Salinity (ppt)`)) %>% 
+  filter(!is.na(Temp) & !is.na(pH)) # (1) rename columns; (2) filter NA data from temp and pH column;
+
+cor.test(temp_ph$pH,temp_ph$Temp, method = "pearson") #correlational test between pH and DO using Pearson cor
+cor.test(temp_ph$pH,temp_ph$Temp, method = "spearman") #correlational test between pH and DO using Spearman cor
+
+```
+
+Results showed that the correlation between temperature and pH is not statisitcally significant with a wide range of 95% CI. 
+
+
+# References
+1. Barret Schloerke, Di Cook, Joseph Larmarange, Francois Briatte, Moritz Marbach, Edwin Thoen, Amos Elberg and Jason Crowley
+  (2021). GGally: Extension to 'ggplot2'. R package version 2.1.2. https://CRAN.R-project.org/package=GGally
+2. Max Kuhn, Simon Jackson and Jorge Cimentada (2020). corrr: Correlations in R. R package version 0.4.3.
+  https://CRAN.R-project.org/package=corrr
+3.  Alboukadel Kassambara (2021). rstatix: Pipe-Friendly Framework for Basic Statistical Tests. R package version 0.7.0.
+  https://CRAN.R-project.org/package=rstatix
+
