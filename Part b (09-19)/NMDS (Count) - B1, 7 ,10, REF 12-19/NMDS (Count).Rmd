@@ -6,7 +6,7 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(fig.width=15, fig.height=8)
+knitr::opts_chunk$set(fig.width=25, fig.height=12)
 ```
 
 ```{css, echo=FALSE}
@@ -58,7 +58,7 @@ Data can be found [here.](https://github.com/tquach123/thesis-codes "Frank's Git
 
 ```{r, warning=F,message=F}
 library(readxl)
-count_combined <- read_excel("F:/GitHub Projects/thesis-codes/Part b (09-19)/NMDS (Count) - B1, 7 ,10, REF 12-19/count_combined.xlsx", 
+count_combined <- read_excel("F:/GitHub Projects/thesis_codes/Part b (09-19)/NMDS (Count) - B1, 7 ,10, REF 12-19/count_combined.xlsx", 
     sheet = "CHIRAE F")
 ```
 
@@ -84,14 +84,15 @@ write_xlsx(count_nozero,"F:/One Drive - Towson U/Thesis stuff/Data Analysis/Part
 ## Make a matrix from count data
 
 ```{r,warning=F,message=F}
-count_wo_su <- count_nozero[,4:ncol(count_nozero)] #exclude the first few columns that contains SU information
+count_wo_su <- count_nozero[,4:ncol(count_nozero)] #exclude the first few columns that contains SU information 
+log_count_wo_su <- log(count_wo_su+1) #log transform count data to narrow down the influence of abundant taxa
 ```
 
 ## Run NMDS
 
 ```{r,warning=F,message=F,results='hide'}
 set.seed(1)
-nmds_count <- metaMDS(count_wo_su,distance="bray",maxit=999,trymax = 500,wascores = T,k=2,autotransform = F) #gotta put autotransform on FALSE so R won't transform your data when you don't want it to.
+nmds_count <- metaMDS(log_count_wo_su,distance="bray",maxit=999,trymax = 500,wascores = T,k=3,autotransform = F) #gotta put autotransform on FALSE so R won't transform your data when you don't want it to.
 ```
 
 ## Add back SU columns
@@ -109,7 +110,7 @@ data.scores.dplyr <- data.scores %>% mutate(Site = count_nozero$Site,Year=count_
 ```{r, message=F,warning=F}
 library(ggplot2) #load the package
 
-count_part2_graph <- ggplot(data.scores.dplyr, aes(x = NMDS1, y = NMDS2)) + 
+count_part2_graph <- ggplot(data.scores.dplyr, aes(x = NMDS1, y = NMDS3)) + 
     geom_point(size = 4,aes( shape = as.factor(Year), fill = Subwatershed,color=Subwatershed))+ # geom_polygon(data=data.scores.dplyr,aes(x=NMDS1,y=NMDS2,group=Subwatershed),alpha=0.30); this is to add a little convex polygon to visualize the clusters better. You can try to see how it looks. 
     scale_shape_manual(values = c(11,21,22,23,24,25)) +
     theme(axis.text.y = element_text(colour = "black", size = 25, face = "bold"), 
@@ -123,10 +124,10 @@ count_part2_graph <- ggplot(data.scores.dplyr, aes(x = NMDS1, y = NMDS2)) +
     legend.key=element_blank(),
     plot.title = element_text(color = "black", size = 30, face = "bold", hjust = 0.5)) + 
     labs(
-    title = "NMDS graph of Part B Count") + 
+    title = "NMDS graph of Part B Ln(x+1) Count") + 
     theme(axis.title.x = element_text(margin=margin(t=10)), #add margin to x-axis title
         axis.title.y = element_text(margin=margin(r=10)))+
-    labs(x = "NMDS1", fill = "Sub-watershed",color="Sub-watershed", y = "NMDS2", shape = "Year")  + 
+    labs(x = "NMDS1", fill = "Sub-watershed",color="Sub-watershed", y = "NMDS3", shape = "Year")  + 
     scale_fill_manual(values = c("#b10026", "#feb14c","#ffeea1","#fc4d2a")) +  
     scale_colour_manual(values = c("#b10026", "#feb14c","#ffeea1","#fc4d2a")) +
     geom_text(aes(label=Site),hjust=0.4, vjust=1.5,size=10) + 
@@ -137,7 +138,7 @@ count_part2_graph <- ggplot(data.scores.dplyr, aes(x = NMDS1, y = NMDS2)) +
 
 count_part2_graph
 
-ggsave("Part 2 Count NMDS (B1, 7, 10, REF - only CHIRAE).jpeg",count_part2_graph,width=25,height=13)
+ggsave("Part 2 ln x+1 Count NMDS (B1, 7, 10, REF - only CHIRAE).jpeg",count_part2_graph,width=25,height=13)
 
 ```
 
