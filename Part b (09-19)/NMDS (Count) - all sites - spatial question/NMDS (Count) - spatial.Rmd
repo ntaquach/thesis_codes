@@ -42,7 +42,7 @@ pre {
 
 # Introduction
 
-These are codes I used to run NMDS on Count data collected by the BC DEPS at all benthic sites after 2009. Please note that 
+These are codes I used to run NMDS on Count data collected by the BC DEPS at all benthic sites after 2009. Please note that I added all sites sampled by the BC DEPS. Some sites were sampled every year or every other year. Some sites were not sampled as often. The purpose of this analysis was to determine whether spatially close sites in the same sub-watershed would be also close on the ordination graph.
 
 ## Load the package
 
@@ -102,6 +102,10 @@ library(dplyr) #load the package
 data.scores <- as.data.frame(scores(nmds_count)$sites) #extract NMDS scores
 data.scores.dplyr <- data.scores %>% mutate(Site = count_nozero$Site,Year=count_nozero$Year,
                                             Subwatershed=count_nozero$Subwatershed)
+
+library("writexl")
+
+write_xlsx(data.scores.dplyr,"F:/GitHub Projects/thesis_codes/Part b (09-19)/NMDS (Count) - all sites - spatial question/NMDS all sites count part b scores.xlsx")
 
 ```
 
