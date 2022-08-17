@@ -1,0 +1,95 @@
+---
+title: "Correlation between WC and NMDS all sites"
+author: "Nguyen Tien Anh Quach"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.width=25, fig.height=13)
+```
+
+```{css, echo=FALSE}
+h1, h4 {
+  text-align: center;
+  color: black;
+  font-weight: bold;
+}
+
+/* Whole document: */
+body{
+  font-family: Times New Roman;
+  font-size: 16pt;
+}
+/* Headers */
+h1,h2,h3,h4,h5,h6{
+  font-size: 24pt;
+}
+
+<style type="text/css">
+body, td {
+   font-size: 16px;
+}
+code.r{
+  font-size: 16px;
+}
+pre {
+  font-size: 16px
+}
+</style>
+  
+```
+
+# Introduction
+
+These are codes I used to run simple linear regression on water chemistry data and NMDS scores from NMDS all sites count part B.
+
+## Import NMDS score data
+
+Data can be downloaded here
+
+```{r message=F,warning=F}
+setwd("F:/GitHub Projects/thesis_codes/") #set working directory
+library(readxl)
+nmds_scores <- read_excel("Part b (09-19)/Water chemistry/Regression - WC and NMDS scores/NMDS all sites count part b scores.xlsx")
+```
+
+## Import water chemistry data
+
+Data can be downloaded here
+
+```{r message=F,warning=F}
+setwd("F:/GitHub Projects/thesis_codes/") #set working directory
+wc <- read_excel("Part b (09-19)/Water chemistry/Regression - WC and NMDS scores/Ambient WC data.xlsx", 
+    sheet = "Combined")
+```
+
+Next step is to clean up data, filter out data that are not need for the analyses. 
+
+## Clean up data
+
+```{r message=F,warning=F}
+library(dplyr)
+
+new_nmds_scores <- semi_join(nmds_scores,wc)#return all rows from NMDS score dataset with a match in the WC dataset
+
+wc_nmds_combine<- left_join(new_nmds_scores,wc) #join both WC and new NMDS score datasets together and match rows
+```
+ 
+Data filtering and clearning are done. Now comes to analysis part.
+
+## Simple Linear Regression
+
+water temperature can be variable due to varying weather, time of the day, amount of sunshine, etc. during the sampling process. This can also affect DO and pH. Thus, I am choosing TSS, SC, and salinity to investigate. However, the three variables are significantly correlated (p < 0.001). Check my correlation diagram of part 2 ambient water chemistry [here.](https://rpubs.com/tquach98/part2WC "Frank's WC analyses"). Therefore, I chose Sc for this analysis.
+
+```{r message=F,warning=F}
+library(dplyr)
+data_wo_sc <- wc_nmds_combine %>% filter(!is.na(SC)) 
+
+summary(lm(data=data_wo_sc,NMDS1~SC))
+summary(lm(data=data_wo_sc,NMDS2~SC))
+summary(lm(data=data_wo_sc,NMDS3~SC))
+
+```
+
+Conclusion: Only axis 1 scores had a significant correlations with sC measurements. This further supported the finding from the NMDS of count data from all sites, as axis 1 was shown to separate REF-o17 from other sites in Red Run. 
