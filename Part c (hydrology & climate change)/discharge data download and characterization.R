@@ -98,7 +98,7 @@ plotFlowTrend(eList, qUnit = 'cfs', paStart = 4, istat = 7) # see stat #s below;
 # Quantile Kendall for change over time for change
 # create start & end dates
 Start.date <- paste(Start, '-04-01', sep='')
-End.date <- paste(End, '-09-30', sep='')
+End.date <- paste(End, '-12-31', sep='')
 
 plotQuantileKendall(eList, startDate = Start.date, endDate = End.date, 
                     paStart = 04, paLong = 12,
