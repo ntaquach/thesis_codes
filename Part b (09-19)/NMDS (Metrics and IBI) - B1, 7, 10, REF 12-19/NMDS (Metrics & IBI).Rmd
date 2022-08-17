@@ -6,7 +6,7 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(fig.width=15, fig.height=8)
+knitr::opts_chunk$set(fig.width=25, fig.height=12)
 ```
 
 ```{css, echo=FALSE}
@@ -58,7 +58,7 @@ Data can be found [here.](https://github.com/tquach123/thesis-codes "Frank's Git
 
 ```{r, warning=F,message=F}
 library(readxl)
-metric_ibi_combined <- read_excel("F:/GitHub Projects/thesis-codes/Part b (09-19)/NMDS (Metrics and IBI) - B1, 7, 10, REF 12-19/metric_ibi_combined.xlsx", 
+metric_ibi_combined <- read_excel("F:/GitHub Projects/thesis_codes/Part b (09-19)/NMDS (Metrics and IBI) - B1, 7, 10, REF 12-19/metric_ibi_combined.xlsx", 
     sheet = "Metric & IBI")
 ```
 
@@ -91,16 +91,16 @@ data.scores.site.dplyr <- data.scores.site %>% mutate(Site = metric_ibi_combined
 library(ggplot2) #load the package
 
 ibi_part2_graph <- ggplot(data.scores.site.dplyr, aes(x = NMDS1, y = NMDS2)) + 
-    geom_point(size = 4,aes( shape = as.factor(Year), fill = Subwatershed))+
-    scale_shape_manual(values = c(21,22,23,24,25)) +  
+    geom_point(size = 4,aes( shape = as.factor(Year), fill = Subwatershed,color=Subwatershed))+
+    scale_shape_manual(values = c(11,21,22,23,24,25)) +  
   # geom_polygon(data=data.scores.dplyr,aes(x=NMDS1,y=NMDS2,group=Subwatershed),alpha=0.30); this is to add a little convex polygon to visualize the clusters better. You can try to see how it looks. 
-    theme(axis.text.y = element_text(colour = "black", size = 20, face = "bold"), 
-    axis.text.x = element_text(colour = "black", face = "bold", size = 20), 
-    legend.text = element_text(size = 18, face ="bold", colour ="black"), 
-    legend.position = "right", axis.title.y = element_text(face = "bold", size = 14), 
+    theme(axis.text.y = element_text(colour = "black", size = 25, face = "bold"), 
+    axis.text.x = element_text(colour = "black", face = "bold", size = 25), 
+    legend.text = element_text(size = 22, face ="bold", colour ="black"), 
+    legend.position = "right", axis.title.y = element_text(face = "bold", size = 18), 
     axis.title.x = element_text(face = "bold", size = 25, colour = "black"), 
     axis.title.y.left = element_text(face = "bold", size = 25, colour = "black"),
-    legend.title = element_text(size = 20, colour = "black", face = "bold"), 
+    legend.title = element_text(size = 22, colour = "black", face = "bold"), 
     panel.background = element_blank(), panel.border = element_rect(colour = "black", fill = NA, size = 1.2),
     legend.key=element_blank(),
     plot.title = element_text(color = "black", size = 30, face = "bold", hjust = 0.5)) + 
@@ -108,8 +108,9 @@ ibi_part2_graph <- ggplot(data.scores.site.dplyr, aes(x = NMDS1, y = NMDS2)) +
     title = "NMDS graph of Part B IBI and Metrics") + 
     theme(axis.title.x = element_text(margin=margin(t=10)), #add margin to x-axis title
         axis.title.y = element_text(margin=margin(r=10)))+
-    labs(x = "NMDS1", fill = "Sub-watershed", y = "NMDS2", shape = "Year")  + 
+    labs(x = "NMDS1", fill = "Sub-watershed",color="Sub-watershed", y = "NMDS2", shape = "Year")  + 
     scale_fill_manual(values = c("#b10026", "#feb14c","#ffeea1","#fc4d2a")) +
+    scale_color_manual(values = c("#b10026", "#feb14c","#ffeea1","#fc4d2a")) +
     geom_text(aes(label=Site),hjust=0.55, vjust=1.5,size=7) + 
     geom_hline(yintercept=0, linetype="dashed", 
                 color = "black", size=1) + #add horizontal and vertical lines at 0
@@ -119,7 +120,7 @@ ibi_part2_graph <- ggplot(data.scores.site.dplyr, aes(x = NMDS1, y = NMDS2)) +
 
 ibi_part2_graph
 
-ggsave("Part 2 IBI NMDS (B1, 7, 10, REF).jpeg",ibi_part2_graph,width=15,height=8)
+ggsave("Part 2 IBI NMDS (B1, 7, 10, REF).jpeg",ibi_part2_graph,width=25,height=12)
 
 ```
 
@@ -136,7 +137,7 @@ nmds_metric_part2_biplot <- ibi_part2_graph +
   geom_text(data=data.scores.metric, 
             aes(x=NMDS1,y=NMDS2,label=rownames(data.scores.metric),
                 hjust=0.55*(1-sign(NMDS1)),vjust=0.5*(1-sign(NMDS2))), 
-            color="black", size=3) + #add text to arrow
+            color="black", size=6) + #add text to arrow
   geom_hline(yintercept=0, linetype="dashed", 
                 color = "black", size=1) + #add horizontal and vertical lines at 0
   geom_vline(xintercept=0, linetype="dashed", 
@@ -144,7 +145,7 @@ nmds_metric_part2_biplot <- ibi_part2_graph +
 
 nmds_metric_part2_biplot
 
-ggsave("NMDS Metric Part B Biplot.jpeg", nmds_metric_part2_biplot,width=15,height=8)
+ggsave("NMDS Metric Part B Biplot.jpeg", nmds_metric_part2_biplot,width=25,height=12)
 ```
 
 ## Plot a Screeplot
