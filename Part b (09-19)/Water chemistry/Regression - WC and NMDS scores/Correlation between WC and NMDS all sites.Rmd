@@ -46,7 +46,7 @@ These are codes I used to run simple linear regression on water chemistry data a
 
 ## Import NMDS score data
 
-Data can be downloaded here
+Data can be downloaded [here.](https://github.com/ntaquach/thesis_codes/raw/main/Part%20b%20(09-19)/Water%20chemistry/Regression%20-%20WC%20and%20NMDS%20scores/NMDS%20all%20sites%20count%20part%20b%20scores.xlsx "NMDS score data")
 
 ```{r message=F,warning=F}
 setwd("F:/GitHub Projects/thesis_codes/") #set working directory
@@ -56,7 +56,7 @@ nmds_scores <- read_excel("Part b (09-19)/Water chemistry/Regression - WC and NM
 
 ## Import water chemistry data
 
-Data can be downloaded here
+Data can be downloaded [here.](https://github.com/ntaquach/thesis_codes/raw/main/Part%20b%20(09-19)/Water%20chemistry/Regression%20-%20WC%20and%20NMDS%20scores/Ambient%20WC%20data.xlsx "WC data")
 
 ```{r message=F,warning=F}
 setwd("F:/GitHub Projects/thesis_codes/") #set working directory
@@ -80,7 +80,7 @@ Data filtering and clearning are done. Now comes to analysis part.
 
 ## Simple Linear Regression
 
-water temperature can be variable due to varying weather, time of the day, amount of sunshine, etc. during the sampling process. This can also affect DO and pH. Thus, I am choosing TSS, SC, and salinity to investigate. However, the three variables are significantly correlated (p < 0.001). Check my correlation diagram of part 2 ambient water chemistry [here.](https://rpubs.com/tquach98/part2WC "Frank's WC analyses"). Therefore, I chose Sc for this analysis.
+Water temperature can be variable due to varying weather, time of the day, amount of sunshine, etc. during the sampling process. This can also affect DO and pH. Thus, I am choosing TSS, SC, and salinity to investigate. However, the three variables are significantly correlated (p < 0.001). Check my correlation diagram of part 2 ambient water chemistry [here.](https://rpubs.com/tquach98/part2WC "Frank's WC analyses"). Therefore, I chose Sc for this analysis.
 
 ```{r message=F,warning=F}
 library(dplyr)
@@ -92,4 +92,4 @@ summary(lm(data=data_wo_sc,NMDS3~SC))
 
 ```
 
-Conclusion: Only axis 1 scores had a significant correlations with sC measurements. This further supported the finding from the NMDS of count data from all sites, as axis 1 was shown to separate REF-o17 from other sites in Red Run. 
+**Conclusion**: Only axis 1 scores had a significant correlations with sC measurements. This further supported the finding from the NMDS of count data from all sites, as axis 1 was shown to separate REF-o17 from other sites in Red Run. 
