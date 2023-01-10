@@ -103,6 +103,8 @@ data.scores <- as.data.frame(scores(nmds_count)$sites) #extract NMDS scores
 data.scores.dplyr <- data.scores %>% mutate(Site = count_nozero$Site,Year=count_nozero$Year,
                                             Subwatershed=count_nozero$Subwatershed)
 
+taxon.scores <- as.data.frame(scores(nmds_count,display=c("species")))
+
 ```
 
 ## Plot the graph using ggplot2
@@ -110,8 +112,11 @@ data.scores.dplyr <- data.scores %>% mutate(Site = count_nozero$Site,Year=count_
 ```{r, message=F,warning=F}
 library(ggplot2) #load the package
 
+data.scores.dplyr$Subwatershed = factor(data.scores.dplyr$Subwatershed,levels=c("B9 (2%)","B7 (12%)",
+                                                                                "B9A (16%)","B1 (21%)"))
+
 count_part2_graph <- ggplot(data.scores.dplyr, aes(x = NMDS1, y = NMDS3)) + 
-    geom_point(size = 4,aes( shape = as.factor(Year), fill = Subwatershed,color=Subwatershed))+ # geom_polygon(data=data.scores.dplyr,aes(x=NMDS1,y=NMDS2,group=Subwatershed),alpha=0.30); this is to add a little convex polygon to visualize the clusters better. You can try to see how it looks. 
+    geom_point(size = 4,stroke =2,aes( shape = as.factor(Year), fill = Subwatershed,color=Subwatershed))+ # geom_polygon(data=data.scores.dplyr,aes(x=NMDS1,y=NMDS2,group=Subwatershed),alpha=0.30); this is to add a little convex polygon to visualize the clusters better. You can try to see how it looks. 
     scale_shape_manual(values = c(11,21,22,23,24,25)) +
     theme(axis.text.y = element_text(colour = "black", size = 25, face = "bold"), 
     axis.text.x = element_text(colour = "black", face = "bold", size = 25), 
@@ -128,8 +133,8 @@ count_part2_graph <- ggplot(data.scores.dplyr, aes(x = NMDS1, y = NMDS3)) +
     theme(axis.title.x = element_text(margin=margin(t=10)), #add margin to x-axis title
         axis.title.y = element_text(margin=margin(r=10)))+
     labs(x = "NMDS1", fill = "Sub-watershed",color="Sub-watershed", y = "NMDS3", shape = "Year")  + 
-    scale_fill_manual(values = c("#b10026", "#feb14c","#ffeea1","#fc4d2a")) +  
-    scale_colour_manual(values = c("#b10026", "#feb14c","#ffeea1","#fc4d2a")) +
+    scale_fill_manual(values = c("#ffeea1","#feb14c", "#fc4d2a","#b10026")) +  
+    scale_colour_manual(values = c("#ffeea1","#feb14c", "#fc4d2a","#b10026")) +
     geom_text(aes(label=Site),hjust=0.4, vjust=1.5,size=10) + 
     geom_hline(yintercept=0, linetype="dashed", 
                 color = "black", size=1) + #add horizontal and vertical lines at 0
@@ -150,3 +155,63 @@ library(goeveg) #load package goeveg
 dimcheckMDS(count_wo_su,distance = "bray",k=10,trymax=500,autotransform = F)
 
 ```
+
+
+## Plot a biplot
+
+The purpose is to visualize which benthic taxa are driving the differences in assemblage composition.
+
+```{r message=F,warning=F}
+all_taxa_biplot_part2 <- count_part2_graph + 
+  geom_segment(data=taxon.scores, aes(x=0, xend=NMDS1, y=0, yend=NMDS2), 
+               color="black", arrow=arrow(length=unit(0.01,"npc"))) + #add arrow
+  geom_text(data=taxon.scores, 
+            aes(x=NMDS1,y=NMDS2,label=rownames(taxon.scores),
+                hjust=0.5*(1-sign(NMDS1)),vjust=0.5*(1-sign(NMDS2))), 
+            color="black", size=4,fontface="bold")
+
+ggsave("Biplot Count All Taxa NMDS (B1, 7, 10, REF - only CHIRAE).jpeg", all_taxa_biplot_part2,width=25,height=13)
+
+#previous step was to screen which taxa could be included in the biplot
+
+```
+
+Biplot of selected taxa is below:
+
+```{r message=F,warning=F}
+
+
+count_part2_graph_biplot <- count_part2_graph + #sensitive taxa come first; bold
+  geom_segment(data=taxon.scores[c('LEUCTA','LEUCRA','BAETIS','WORMIA','ACROIA',
+                                   'RHYALA','AMPHRA','STYLUS','MACCUM','DOLOES',
+                                   'ISONIA','DIPLNA','GLOSMA', 'NIGRIA','EPHERA',
+                                   'ECTOIA','EURYLA'),], aes(x=0, xend=NMDS1, y=0, yend=NMDS2), 
+               color="black", arrow=arrow(length=unit(0.01,"npc"))) + #add arrow
+  geom_text(data=taxon.scores[c('LEUCTA','LEUCRA','BAETIS','WORMIA','ACROIA',
+                                   'RHYALA','AMPHRA','STYLUS','MACCUM','DOLOES',
+                                   'ISONIA','DIPLNA','GLOSMA','NIGRIA','EPHERA',
+                                'ECTOIA','EURYLA'),], 
+            aes(x=NMDS1,y=NMDS2,label=rownames(taxon.scores[c('LEUCTA','LEUCRA','BAETIS','WORMIA','ACROIA',
+                                   'RHYALA','AMPHRA','STYLUS','MACCUM','DOLOES',
+                                   'ISONIA','DIPLNA','GLOSMA','NIGRIA','EPHERA',
+                                   'ECTOIA','EURYLA'),]),
+                hjust=0.5*(1-sign(NMDS1)),vjust=0.5*(1-sign(NMDS2))), 
+            color="black", size=6,fontface="bold") +
+  #add text to arrow; now comes tolerant taxa, italicized
+  geom_segment(data=taxon.scores[c('MACRUS','CHELRA','OLIGTA','FERRIA','CHEUHE',
+                                   'ANTOHA','LIMNRA','HYDRHE',
+                                   'CLINRA','HEMEIA','CALOYX'),], aes(x=0, xend=NMDS1, y=0, yend=NMDS2), 
+               color="black", arrow=arrow(length=unit(0.01,"npc"))) + #add arrow
+  geom_text(data=taxon.scores[c('MACRUS','CHELRA','OLIGTA','FERRIA','CHEUHE','ANTOHA','LIMNRA','HYDRHE',
+                                   'CLINRA','HEMEIA','CALOYX'),], 
+            aes(x=NMDS1,y=NMDS2,label=rownames(taxon.scores[c('MACRUS','CHELRA','OLIGTA','FERRIA','CHEUHE',
+                                                              'ANTOHA','LIMNRA','HYDRHE','CLINRA','HEMEIA',
+                                                              'CALOYX'),]),
+                hjust=0.5*(1-sign(NMDS1)),vjust=0.5*(1-sign(NMDS2))), 
+            color="black", size=6,fontface="italic")
+
+count_part2_graph_biplot
+
+ggsave("Count Chapter 2 Biplot Selected Sites.jpeg", count_part2_graph_biplot,width=25,height=13)
+```
+
