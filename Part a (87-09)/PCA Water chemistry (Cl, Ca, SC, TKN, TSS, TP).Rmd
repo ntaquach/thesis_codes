@@ -42,7 +42,7 @@ pre {
 
 # Introduction
 
-These are the codes I used to run PCA of my water chemistry data. Instead of using the princomp() function, I am going to try out the rda() function from the vegan package (Oksanen et al. 2012). Any comment is welcome. 
+These are the codes I used to run PCA of my averaged water chemistry data. Instead of using the princomp() function, I am going to try out the rda() function from the vegan package (Oksanen et al. 2012). Any comment is welcome. 
 
 ## Load data
 
@@ -81,7 +81,8 @@ Another way to add columns to the existing dataset is to use pipes from the dply
 
 ```{r message=F, warning=F}
 
-library(dplyr) #load the package
+library(dplyr)
+library(vegan) #load the package
 site.scores <- as.data.frame(scores(wc.pca,display = "sites")) #extract site scores
 site.scores.dplyr <- site.scores %>% mutate(Site = wc$Site,Year=wc$Year,
                                             Subwatershed=wc$Subwatershed)
@@ -98,13 +99,14 @@ This is going to produce a PCA graph for water chemistry variables. See below fo
 library(ggplot2)
 
 wc_pca_plot <- ggplot(site.scores.dplyr,aes(PC1, PC2))+ 
-    geom_point(size = 4,aes(color=Subwatershed, shape = as.character(Year))) +
-    theme(axis.text.y = element_text(colour = "black", size = 12, face = "bold"), 
-    axis.text.x = element_text(colour = "black", face = "bold", size = 12), 
-    legend.text = element_text(size = 12, face ="bold", colour ="black"), 
+    geom_point(size = 6,aes(color=Subwatershed, shape = as.character(Year))) +
+    theme(axis.text.y = element_text(colour = "black", size = 20, face = "bold"), 
+    axis.text.x = element_text(colour = "black", face = "bold", size = 20), 
+    legend.text = element_text(size = 18, face ="bold", colour ="black"), 
     legend.position = "right", axis.title.y = element_text(face = "bold", size = 14), 
-    axis.title.x = element_text(face = "bold", size = 14, colour = "black"), 
-    legend.title = element_text(size = 14, colour = "black", face = "bold"), 
+    axis.title.x = element_text(face = "bold", size = 25, colour = "black"),
+    axis.title.y.left = element_text(face = "bold", size = 25, colour = "black"),
+    legend.title = element_text(size = 20, colour = "black", face = "bold"), 
     panel.background = element_blank(), panel.border = element_rect(colour = "black", fill = NA, size = 1.2),
     legend.key=element_blank(),
     plot.title = element_text(color = "black", size = 30, face = "bold", hjust = 0.5)) + 
@@ -114,7 +116,7 @@ wc_pca_plot <- ggplot(site.scores.dplyr,aes(PC1, PC2))+
         axis.title.y = element_text(margin=margin(r=10)))+
     labs(x = "PC1 (65%)", y = "PC2 (23%)", shape = "Year") +
     scale_colour_manual(values = c("#b10026", "#feb14c","#ffeea1","#fc4d2a")) +
-    geom_text(aes(label=Site),hjust=-0.15, vjust=1)
+    geom_text(aes(label=Site),hjust=0.4, vjust=1.75,size=5)
 
 wc_pca_plot
 ```
@@ -126,11 +128,11 @@ The job now is to add some arrows that correspond to the "species" scores extrac
 ```{r message=F,warning=F}
 wc_pca_biplot <- wc_pca_plot + 
   geom_segment(data=wc.scores, aes(x=0, xend=PC1, y=0, yend=PC2), 
-               color="red", arrow=arrow(length=unit(0.01,"npc"))) + #add arrow
+               color="black", arrow=arrow(length=unit(0.01,"npc"))) + #add arrow
   geom_text(data=wc.scores, 
             aes(x=PC1,y=PC2,label=rownames(wc.scores),
-                hjust=0.5*(1-sign(PC1)),vjust=0.5*(1-sign(PC2))), 
-            color="red", size=4) + #add text to arrow
+                hjust=-0.75,vjust=0.5*(1-sign(PC2))), 
+            color="black", size=4) + #add text to arrow
   geom_hline(yintercept=0, linetype="dashed", 
                 color = "black", size=1) + #add horizontal and vertical lines at 0
   geom_vline(xintercept=0, linetype="dashed", 
@@ -139,6 +141,55 @@ wc_pca_biplot <- wc_pca_plot +
 wc_pca_biplot
 
 ggsave("PCA WC Biplot.jpeg", wc_pca_biplot,width=15,height=8)
+```
+
+## Black and White PCA plots for Pubs purposes
+
+```{r message=F,warning=F}
+library(ggplot2)
+
+site.scores.dplyr$Subwatershed = factor(site.scores.dplyr$Subwatershed,levels=c("B9 (2%)", "B7 (12%)","B9A (13%)","B1 (19%)"))
+
+wc_pca_plot_bw <- ggplot(site.scores.dplyr,aes(PC1, PC2))+ 
+    geom_point(size = 9,aes(shape = Subwatershed, fill = as.character(Year))) +
+    scale_fill_manual(values = c("#cecece","#040404")) +
+    scale_shape_manual(values = c(21,22,23,24)) +  
+    theme(axis.text.y = element_text(colour = "black", size = 20, face = "bold"), 
+    axis.text.x = element_text(colour = "black", face = "bold", size = 20), 
+    legend.text = element_text(size = 18, face ="bold", colour ="black"), 
+    legend.position = "right", axis.title.y = element_text(face = "bold", size = 14), 
+    axis.title.x = element_text(face = "bold", size = 25, colour = "black"),
+    axis.title.y.left = element_text(face = "bold", size = 25, colour = "black"),
+    legend.title = element_text(size = 20, colour = "black", face = "bold"), 
+    panel.background = element_blank(), panel.border = element_rect(colour = "black", fill = NA, size = 1.2),
+    legend.key=element_blank(),
+    plot.title = element_text(color = "black", size = 30, face = "bold", hjust = 0.5)) + 
+    labs(
+    title = "PCA graph of water chemistry measurements") + 
+    theme(axis.title.x = element_text(margin=margin(t=10)), #add margin to x-axis title
+        axis.title.y = element_text(margin=margin(r=10)))+
+    labs(x = "PC1 (65%)", y = "PC2 (23%)", shape="Sub-watershed (% ISA)",fill = "Year") +
+    geom_text(aes(label=Site),hjust=0.4, vjust=1.85,size=5)
+
+wc_pca_plot_bw
+
+#Biplot
+
+wc_pca_biplot_bw <- wc_pca_plot_bw + 
+  geom_segment(data=wc.scores, aes(x=0, xend=PC1, y=0, yend=PC2), 
+               color="black", arrow=arrow(length=unit(0.01,"npc"))) + #add arrow
+  geom_text(data=wc.scores, 
+            aes(x=PC1,y=PC2,label=rownames(wc.scores),
+                hjust=-0.75,vjust=0.5*(1-sign(PC2))), 
+            color="black", size=4) + #add text to arrow
+  geom_hline(yintercept=0, linetype="dashed", 
+                color = "black", size=1) + #add horizontal and vertical lines at 0
+  geom_vline(xintercept=0, linetype="dashed", 
+                color = "black", size=1)
+
+wc_pca_biplot_bw
+
+ggsave("PCA WC Biplot_BW.jpeg", wc_pca_biplot_bw,width=15,height=8)
 ```
 
 # References
