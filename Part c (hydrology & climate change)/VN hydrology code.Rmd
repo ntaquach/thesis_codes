@@ -545,12 +545,12 @@ End <- 2019
 plot15(eList, yearStart = Start, yearEnd = End)
 ```
 
-## Flow trend for start of year in April
+## Flow trend for start of water year in October
 ```{r}
-plotFlowTrend(eList, qUnit = 'cfs', paStart = 4, istat = 5) # see stat #s below; mean daily Q
-plotFlowTrend(eList, qUnit = 'cfs', paStart = 4, istat = 8) # see stat #s below; 1 day max Q
-plotFlowTrend(eList, qUnit = 'cfs', paStart = 4, istat = 4) # see stat #s below; median daily Q
-plotFlowTrend(eList, qUnit = 'cfs', paStart = 4, istat = 7) # see stat #s below; 7 day max Q
+plotFlowTrend(eList, qUnit = 'cfs', paStart = 10, istat = 5) # see stat #s below; mean daily Q
+plotFlowTrend(eList, qUnit = 'cfs', paStart = 10, istat = 8) # see stat #s below; 1 day max Q
+plotFlowTrend(eList, qUnit = 'cfs', paStart = 10, istat = 4) # see stat #s below; median daily Q
+plotFlowTrend(eList, qUnit = 'cfs', paStart = 10, istat = 7) # see stat #s below; 7 day max Q
 
 ```
  
@@ -562,7 +562,7 @@ Start.date <- paste(Start, '-04-01', sep='')
 End.date <- paste(End, '-09-30', sep='')
 
 plotQuantileKendall(eList, startDate = Start.date, endDate = End.date, 
-                    paStart = 04, paLong = 12,
+                    paStart = 10, paLong = 12,
                     legendLocation = "topright", legendSize = 0.5)
 
 # Plot Five Trend Graphs
