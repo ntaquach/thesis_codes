@@ -1,5 +1,5 @@
 ---
-title: "Multiple Regression of WC and NMDS scores"
+title: "Multiple and Simple Linear Regression of WC and NMDS scores"
 author: "Frank"
 date: "`r format(Sys.Date())`"
 output: html_document
@@ -42,7 +42,7 @@ pre {
 
 # Introduction
 
-These are the codes I used to run the multiple regression analysis on the correlations between axis 1/2 scores and water chemistry measurements from B1, B5, B7, B9, and B9A, which correspond to five water sampling stations designated by the Baltimore County.
+These are the codes I used to run the multiple and simple linear regression analysis on the correlations between axis 1/2 scores and water chemistry measurements from B1, B5, B7, B9, and B9A, which correspond to five water sampling stations designated by the Baltimore County.
 
 ## Edit and organize data
 
@@ -73,6 +73,20 @@ mp_data <- data.scores.dplyr %>% filter(!row_number() %in% c(2,3, 4,7,10,12,13,1
 ```
 
 Now that the data are ready to be used. The rest is easy and straighforward. 
+
+## Simple linear regression
+
+```{r message=F,warning=F}
+summary(lm(wc$Cl~wc$Ca))
+summary(lm(wc$Cl~wc$SC))
+summary(lm(wc$SC~wc$Ca))
+
+summary(lm(wc$TKN~wc$TP))
+summary(lm(wc$TKN~wc$TSS))
+summary(lm(wc$TSS~wc$TP))
+
+```
+
 
 ## Conduct multiple regression
 
