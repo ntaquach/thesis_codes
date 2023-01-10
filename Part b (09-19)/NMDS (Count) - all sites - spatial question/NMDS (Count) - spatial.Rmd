@@ -99,7 +99,8 @@ nmds_count <- metaMDS(log_count_wo_su,distance="bray",maxit=999,trymax = 500,was
 
 ```{r message=F, warning=F}
 library(dplyr) #load the package
-data.scores <- as.data.frame(scores(nmds_count)$sites) #extract NMDS scores
+data.scores <- as.data.frame(scores(nmds_count)$sites) #extract NMDS scores for sites
+taxa.scores <- as.data.frame(scores(nmds_count)$species) #extract taxa score
 data.scores.dplyr <- data.scores %>% mutate(Site = count_nozero$Site,Year=count_nozero$Year,
                                             Subwatershed=count_nozero$Subwatershed)
 
@@ -128,7 +129,7 @@ count_allsite_part2_graph <- ggplot(data.scores.dplyr, aes(x = NMDS1, y = NMDS2)
     legend.key=element_blank(),
     plot.title = element_text(color = "black", size = 30, face = "bold", hjust = 0.5)) + 
     labs(
-    title = "NMDS graph of Part B Count for all sites") + 
+    title = "NMDS graph of Part B Count (ln(x+1)) for all sites") + 
     theme(axis.title.x = element_text(margin=margin(t=10)), #add margin to x-axis title
         axis.title.y = element_text(margin=margin(r=10)))+
     labs(x = "NMDS1", fill = "Sub-watershed",color="Sub-watershed", y = "NMDS2", shape = "Year")  + 
@@ -138,7 +139,8 @@ count_allsite_part2_graph <- ggplot(data.scores.dplyr, aes(x = NMDS1, y = NMDS2)
     geom_hline(yintercept=0, linetype="dashed", 
                 color = "black", size=1) + #add horizontal and vertical lines at 0
     geom_vline(xintercept=0, linetype="dashed", 
-                color = "black", size=1)
+                color = "black", size=1) +
+    scale_x_reverse() + scale_y_reverse()
 
 count_allsite_part2_graph
 
