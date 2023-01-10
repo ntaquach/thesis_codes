@@ -59,7 +59,7 @@ Data can be found [here.](https://github.com/tquach123/thesis-codes "Frank's Git
 
 ```{r, warning=F,message=F}
 library(readxl)
-density_combined <- read_excel("~/thesis-codes/Part a (87-09)/density_combined.xlsx", 
+density_combined <- read_excel("F:/GitHub Projects/thesis_codes/Part a (87-09)/density_combined.xlsx", 
      sheet = "Final")
 ```
 
@@ -106,6 +106,9 @@ library(dplyr) #load the package
 data.scores <- as.data.frame(scores(nmds_density)$sites) #extract NMDS scores
 data.scores.dplyr <- data.scores %>% mutate(Site = density_combined$Site,Year=density_combined$Year,
                                             Subwatershed=density_combined$Subwatershed)
+
+taxon.scores <- as.data.frame(scores(nmds_density,display=c("species")))
+
 library(writexl)
 write_xlsx(data.scores.dplyr,"C:/Users/tiena/OneDrive/Documents/thesis-codes/Part a (87-09)/Multiple regression between WC and axis scores/NMDS scores-dplyr.xlsx")
 head(data.scores.dplyr)
@@ -118,14 +121,19 @@ Package ggplot2 is always the way to go when plotting (Wickham, 2016).
 ```{r, message=F,warning=F}
 library(ggplot2) #load the package
 
+data.scores.dplyr$Subwatershed = factor(data.scores.dplyr$Subwatershed,levels=c("B9 (2%)","B7 (12%)",
+                                                                                "B9A (13%)","B1 (19%)"))
+
 density_combined_graph <- ggplot(data.scores.dplyr, aes(x = NMDS1, y = NMDS2)) + 
-    geom_point(size = 4,aes( shape = Year, colour = Subwatershed))+ # geom_polygon(data=data.scores.dplyr,aes(x=NMDS1,y=NMDS2,group=Subwatershed),alpha=0.30); this is to add a little convex polygon to visualize the clusters better. You can try to see how it looks. 
-    theme(axis.text.y = element_text(colour = "black", size = 12, face = "bold"), 
-    axis.text.x = element_text(colour = "black", face = "bold", size = 12), 
-    legend.text = element_text(size = 12, face ="bold", colour ="black"), 
+    geom_point(size = 6,stroke=2, aes( shape = Year, color = Subwatershed))+ # geom_polygon(data=data.scores.dplyr,aes(x=NMDS1,y=NMDS2,group=Subwatershed),alpha=0.30); this is to add a little convex polygon to visualize the clusters better. You can try to see how it looks. 
+  scale_color_manual(values = c("#ffeea1", "#feb14c","#fc4d2a","#b10026")) +
+     theme(axis.text.y = element_text(colour = "black", size = 20, face = "bold"), 
+    axis.text.x = element_text(colour = "black", face = "bold", size = 20), 
+    legend.text = element_text(size = 18, face ="bold", colour ="black"), 
     legend.position = "right", axis.title.y = element_text(face = "bold", size = 14), 
-    axis.title.x = element_text(face = "bold", size = 14, colour = "black"), 
-    legend.title = element_text(size = 14, colour = "black", face = "bold"), 
+    axis.title.x = element_text(face = "bold", size = 25, colour = "black"), 
+    axis.title.y.left = element_text(face = "bold", size = 25, colour = "black"),
+    legend.title = element_text(size = 20, colour = "black", face = "bold"), 
     panel.background = element_blank(), panel.border = element_rect(colour = "black", fill = NA, size = 1.2),
     legend.key=element_blank(),
     plot.title = element_text(color = "black", size = 30, face = "bold", hjust = 0.5)) + 
@@ -133,14 +141,128 @@ density_combined_graph <- ggplot(data.scores.dplyr, aes(x = NMDS1, y = NMDS2)) +
     title = "NMDS graph of combined density") + 
     theme(axis.title.x = element_text(margin=margin(t=10)), #add margin to x-axis title
         axis.title.y = element_text(margin=margin(r=10)))+
-    labs(x = "NMDS1", colour = "Subwatershed", y = "NMDS2", shape = "Year")  + 
-    scale_colour_manual(values = c("#b10026", "#feb14c","#ffeea1","#fc4d2a")) +
-    geom_text(aes(label=Site),hjust=-0.15, vjust=1.2)
+    labs(x = "NMDS1", color = "Sub-watershed (% ISA)", y = "NMDS2", shape = "Year")  + 
+    geom_hline(yintercept=0, linetype="dashed", 
+                color = "black", size=1) + #add horizontal and vertical lines at 0
+    geom_vline(xintercept=0, linetype="dashed", 
+                color = "black", size=1) # +geom_text(aes(label=Site),hjust=-0.25, vjust=1.5,size=4); option for sites
 
 density_combined_graph
 
-ggsave("Combined Density NMDS.jpeg",density_combined_graph,width=15,height=8)
+ggsave("Combined Density NMDS.jpeg",density_combined_graph,width=25,height=13)
 
+
+desnity_combined_biplot <- density_combined_graph + 
+  geom_segment(data=taxon.scores[c('PROMIA','NYCTAX','DRUNLA','PROSUM','SIALIS','ACERNA','GLOSMA',
+                                   'ANCHUS','AMPHRA'),], aes(x=0, xend=NMDS1, y=0, yend=NMDS2), 
+               color="black", arrow=arrow(length=unit(0.01,"npc"))) + #add arrow
+  geom_text(data=taxon.scores[c('PROMIA','NYCTAX','DRUNLA','PROSUM','SIALIS','ACERNA','GLOSMA',
+                                   'ANCHUS','AMPHRA'),], 
+            aes(x=NMDS1,y=NMDS2,label=rownames(taxon.scores[c('PROMIA','NYCTAX','DRUNLA','PROSUM','SIALIS',
+                                                              'ACERNA','GLOSMA','ANCHUS','AMPHRA'),]),
+                hjust=0.5*(1-sign(NMDS1)),vjust=0.5*(1-sign(NMDS2))), 
+            color="black", size=6,fontface="bold") + 
+  #add text to arrow; now comes tolerant taxa, italicized
+  geom_segment(data=taxon.scores[c('ARGIIA','CHELRA','OLIGTA','FERRIA','CHEUHE','ANTOHA','LIMNRA','HYDRHE',
+                                   'CLINRA','HEMEIA'),], aes(x=0, xend=NMDS1, y=0, yend=NMDS2), 
+               color="black", arrow=arrow(length=unit(0.01,"npc"))) + #add arrow
+  geom_text(data=taxon.scores[c('ARGIIA','CHELRA','OLIGTA','FERRIA','CHEUHE','ANTOHA','LIMNRA','HYDRHE',
+                                   'CLINRA','HEMEIA'),], 
+            aes(x=NMDS1,y=NMDS2,label=rownames(taxon.scores[c('ARGIIA','CHELRA','OLIGTA','FERRIA','CHEUHE',
+                                                              'ANTOHA','LIMNRA','HYDRHE','CLINRA','HEMEIA'),]),
+                hjust=0.5*(1-sign(NMDS1)),vjust=0.5*(1-sign(NMDS2))), 
+            color="black", size=6,fontface="italic")
+
+ggsave("Combined Density NMDS Biplot.jpeg",desnity_combined_biplot,width=25,height=13)
+
+
+
+```
+
+
+## Gray-scale plot (for publication purposes)
+
+```{r message=F,warning=F}
+library(ggplot2) #load the package
+
+data.scores.dplyr$Subwatershed = factor(data.scores.dplyr$Subwatershed,levels=c("B9 (2%)", "B7 (12%)","B9A (13%)","B1 (19%)"))
+
+density_combined_graph_grayscale <- ggplot(data.scores.dplyr, aes(x = NMDS1, y = NMDS2)) + 
+    geom_point(size = 12,aes( shape = Subwatershed, fill = Year))+ # geom_polygon(data=data.scores.dplyr,aes(x=NMDS1,y=NMDS2,group=Subwatershed),alpha=0.30); this is to add a little convex polygon to visualize the clusters better. You can try to see how it looks. 
+    scale_fill_manual(values = c("#cecece","#040404")) +
+    scale_shape_manual(values = c(21,22,23,24)) +
+    guides(fill=guide_legend(override.aes=list(colour=c("#cecece","#040404")))) +
+    theme(axis.text.y = element_text(colour = "black", size = 25, face = "bold"), 
+    axis.text.x = element_text(colour = "black", face = "bold", size = 25), 
+    legend.text = element_text(size = 20, face ="bold", colour ="black"), 
+    legend.position = "right", axis.title.y = element_text(face = "bold", size = 20), 
+    axis.title.x = element_text(face = "bold", size = 30, colour = "black"), 
+    axis.title.y.left = element_text(face = "bold", size = 30, colour = "black"),
+    legend.title = element_text(size = 25, colour = "black", face = "bold"), 
+    panel.background = element_blank(), panel.border = element_rect(colour = "black", fill = NA, size = 1.2),
+    legend.key=element_blank(),
+    plot.title = element_text(color = "black", size = 30, face = "bold", hjust = 0.5)) + 
+    labs(
+    title = "NMDS graph of combined density") + 
+    theme(axis.title.x = element_text(margin=margin(t=10)), #add margin to x-axis title
+        axis.title.y = element_text(margin=margin(r=10)))+
+    labs(x = "NMDS1", colour = "Year", y = "NMDS2", shape = "Sub-watershed (% ISA)")  + 
+    geom_hline(yintercept=0, linetype="dashed", 
+                color = "black", size=1) + #add horizontal and vertical lines at 0
+    geom_vline(xintercept=0, linetype="dashed", 
+                color = "black", size=1)
+
+density_combined_graph_grayscale
+
+ggsave("Combined Density NMDS_Grayscale.jpeg",density_combined_graph_grayscale,width=25,height=13)
+```
+
+## Plot a biplot
+
+The purpose of doing this is to visualize which benthic taxon is driving the change and the homogeneity in the community.
+
+```{r message=F,warning=F}
+all_taxa_biplot <- density_combined_graph_grayscale + 
+  geom_segment(data=taxon.scores, aes(x=0, xend=NMDS1, y=0, yend=NMDS2), 
+               color="black", arrow=arrow(length=unit(0.01,"npc"))) + #add arrow
+  geom_text(data=taxon.scores, 
+            aes(x=NMDS1,y=NMDS2,label=rownames(taxon.scores),
+                hjust=0.5*(1-sign(NMDS1)),vjust=0.5*(1-sign(NMDS2))), 
+            color="black", size=4,fontface="bold")
+
+ggsave("Combined Density for All taxa Biplot.jpeg", all_taxa_biplot,width=25,height=13)
+
+#previous step was to screen which taxa could be included in the biplot
+
+```
+
+```{r message=F,warning=F}
+
+
+density_combined_graph_grayscale_biplot <- density_combined_graph_grayscale + #intolerant taxa come first; bold
+  geom_segment(data=taxon.scores[c('PROMIA','NYCTAX','DRUNLA','PROSUM','SIALIS','ACERNA','GLOSMA',
+                                   'ANCHUS','AMPHRA'),], aes(x=0, xend=NMDS1, y=0, yend=NMDS2), 
+               color="black", arrow=arrow(length=unit(0.01,"npc"))) + #add arrow
+  geom_text(data=taxon.scores[c('PROMIA','NYCTAX','DRUNLA','PROSUM','SIALIS','ACERNA','GLOSMA',
+                                   'ANCHUS','AMPHRA'),], 
+            aes(x=NMDS1,y=NMDS2,label=rownames(taxon.scores[c('PROMIA','NYCTAX','DRUNLA','PROSUM','SIALIS',
+                                                              'ACERNA','GLOSMA','ANCHUS','AMPHRA'),]),
+                hjust=0.5*(1-sign(NMDS1)),vjust=0.5*(1-sign(NMDS2))), 
+            color="black", size=6,fontface="bold") + 
+  #add text to arrow; now comes tolerant taxa, italicized
+  geom_segment(data=taxon.scores[c('ARGIIA','CHELRA','OLIGTA','FERRIA','CHEUHE','ANTOHA','LIMNRA','HYDRHE',
+                                   'CLINRA','HEMEIA'),], aes(x=0, xend=NMDS1, y=0, yend=NMDS2), 
+               color="black", arrow=arrow(length=unit(0.01,"npc"))) + #add arrow
+  geom_text(data=taxon.scores[c('ARGIIA','CHELRA','OLIGTA','FERRIA','CHEUHE','ANTOHA','LIMNRA','HYDRHE',
+                                   'CLINRA','HEMEIA'),], 
+            aes(x=NMDS1,y=NMDS2,label=rownames(taxon.scores[c('ARGIIA','CHELRA','OLIGTA','FERRIA','CHEUHE',
+                                                              'ANTOHA','LIMNRA','HYDRHE','CLINRA','HEMEIA'),]),
+                hjust=0.5*(1-sign(NMDS1)),vjust=0.5*(1-sign(NMDS2))), 
+            color="black", size=6,fontface="italic")
+
+density_combined_graph_grayscale_biplot
+
+ggsave("Combined Density Biplot.jpeg", density_combined_graph_grayscale_biplot,width=25,height=13)
 ```
 
 ## Plot a Screeplot
