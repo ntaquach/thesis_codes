@@ -1,0 +1,1013 @@
+---
+title: "Discharge Analysis (Chap 3)"
+author: "Frank"
+date: "`r format(Sys.Date())`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.width=15, fig.height=10)
+```
+
+```{css, echo=FALSE}
+h1, h4 {
+  text-align: center;
+  color: black;
+  font-weight: bold;
+}
+
+/* Whole document: */
+body{
+  font-family: Times New Roman;
+  font-size: 16pt;
+}
+/* Headers */
+h1,h2,h3,h4,h5,h6{
+  font-size: 24pt;
+}
+
+<style type="text/css">
+body, td {
+   font-size: 16px;
+}
+code.r{
+  font-size: 16px;
+}
+pre {
+  font-size: 16px
+}
+</style>
+  
+```
+
+# Introduction
+
+To investigate the impacts of climate change on stream hydrology, it is important to examine the long-term trends. However, in urban watersheds, the question is then how to disentangle the effects of urbanization and climate change on hydrology. 
+
+# Villa Nova Flow duration curve
+
+I first want to know how flow duration curves differ during different periods of time at VN gauging station.
+
+## Load libraries, set working directory, & load data
+
+```{r message=F, warning=F}
+## load necessary libraries
+library(lubridate) # Manipulate dates
+
+# USGS library
+library(EGRET)
+
+# Required for some of functions below that EGRET uses and to run the functions pasted in at the bottom
+library(rkt)
+library(zyp)
+library(Kendall)
+```
+
+## Read data - gauging site number, Q data from NWIS
+
+```{r message=F,warning=F}
+# Set gauging site number
+siteNumber <- '01589300' # Gwynns Falls at Villa Nova MD
+
+# Set start & end dates for period
+startDate <- '1957-02-28'
+endDate <- '2019-12-31' # through end of the study period, 2019
+
+# Read in daily discharge (Q) data from USGS National Water Info System (NWIS)
+Daily <- readNWISDaily(siteNumber, '00060', startDate, endDate)
+# 00060 is the USGS parameter code for stream discharge
+
+# Read in information about site & set short name - note ** interactive
+INFO <- readNWISInfo(siteNumber, '00060') 
+# Set short name to 'Gwynns Falls-Villa Nova'
+# Set station abbreviation to 'GWVN'
+# Set 'Stream flow, mean. daily' to 'DailyQ_cfs'
+# Set abbreviation for discharge units (ft3/s) to 'cfs'
+
+# Create eList -- EGRET variable
+eList <- as.egret(INFO, Daily, NA, NA)
+```
+
+## Pull out max discharge in a year and Plot duration curves
+
+```{r message=F,warning=F}
+library(dplyr)
+library(ggplot2)
+
+max_annualQ_early <- Daily %>% group_by(waterYear) %>% 
+  slice(which.max(Q)) %>% select(waterYear,Q) %>%
+  filter(waterYear <= 1988) %>% filter(waterYear != 1957) %>%
+  ungroup() %>% mutate(specific_Q = Q/32.5, rank = rank(-Q), ri = (length(Q)+1)/rank,
+                       percent_exceed = (1/ri)*100, time = "1958-1988") %>%
+  as.data.frame() 
+
+max_annualQ_late <- Daily %>% group_by(waterYear) %>% 
+  slice(which.max(Q)) %>% select(waterYear,Q) %>%
+  filter(waterYear >= 1996 ) %>% filter(waterYear != 2020) %>%
+  ungroup() %>% mutate(specific_Q = Q/32.5, rank = rank(-Q), ri = (length(Q)+1)/rank,
+                       percent_exceed = (1/ri)*100, time= "1997-2019") %>%
+  as.data.frame() 
+
+max_annualQ <- full_join(max_annualQ_early,max_annualQ_late) %>% 
+   ggplot(aes(x=percent_exceed, y=Q, group=time,color=time)) +
+    geom_line(size=4) +
+    scale_color_manual(values=c("#1b9e77","#e7298a")) +
+    scale_x_log10(limits=c(1,100),
+                  breaks=c(1,10,30,50,70,90)) +
+    scale_y_log10(limits=c(1,300),breaks=c(1,10,100)) +
+    #coord_trans(x="log10", y= "log10") + 
+    #scale_x_continuous(breaks=c(1,10,30,50,70,90)) +
+    #scale_y_continuous(breaks=c(1,10,100)) +
+    #scale_x_continuous(trans="log10") +
+    #scale_y_continuous(trans="log10") +
+    annotation_logticks(sides="trbl") +
+    theme(axis.text.y = element_text(colour = "black", size = 20, face = "bold"), 
+    axis.text.x = element_text(colour = "black", face = "bold", size = 20), 
+    legend.text = element_text(size = 18, face ="bold", colour ="black"), 
+    legend.position = "right", axis.title.y = element_text(face = "bold", size = 14), 
+    axis.title.x = element_text(face = "bold", size = 25, colour = "black"), 
+    axis.title.y.left = element_text(face = "bold", size = 25, colour = "black"),
+    legend.title = element_text(size = 20, colour = "black", face = "bold"), 
+    panel.background = element_blank(), panel.border = element_rect(colour = "black", fill = NA, size = 1.2),
+    legend.key=element_blank(),
+    plot.title = element_text(color = "black", size = 30, face = "bold", hjust = 0.5)) + 
+    labs(
+    title = "Percent exceedance of maximum annual Q at GWVN",
+    x = "Percent exceedance (%)",color="Period") +
+    ylab (bquote('Discharge '(ft^3/s))) +
+    theme(axis.title.x = element_text(margin=margin(t=10)), #add margin to x-axis title
+        axis.title.y = element_text(margin=margin(r=10)))
+
+ggsave("Max Annual Q Percent Exceedance at GWVN.jpeg",max_annualQ,height=13, width=25)
+
+#stream disturbance regime: Stream Ecology by Allan JD
+# relate to trout? check for data on MBSS; tie back to fish and food web => benthic macroinvertebrate
+
+#air vs water temperature? 
+
+```
+
+## Daily Discharge
+
+```{r message=F, warning=F}
+library(dplyr)
+library(ggplot2)
+library(scales)
+
+dailyQ_early <- Daily %>% select(Date,Q,waterYear) %>%
+  filter(waterYear <= 1988) %>% filter(waterYear != 1957) %>%
+  mutate(specific_Q = Q/32.5, rank = rank(-Q), ri = (length(Q)+1)/rank,
+                       percent_exceed = (1/ri)*100, time = "1958-1988") %>%
+  as.data.frame() 
+
+dailyQ_late <- Daily %>% select(Date,Q,waterYear) %>%
+  filter(waterYear >= 1996 ) %>% filter(waterYear != 2020) %>%
+  mutate(specific_Q = Q/32.5, rank = rank(-Q), ri = (length(Q)+1)/rank,
+                       percent_exceed = (1/ri)*100, time= "1997-2019") %>%
+  as.data.frame() 
+
+dailyQ_joined <- full_join(dailyQ_early,dailyQ_late)
+
+dailyQ_duration <- full_join(dailyQ_early,dailyQ_late) %>% 
+   ggplot(aes(x=percent_exceed, y=Q, group=time,color=time)) +
+    geom_line(size=4) +
+    scale_color_manual(values=c("#1b9e77","#e7298a")) +
+    #scale_x_log10(limits=c(0.01,100),breaks=c(0.01,0.1,1,10,30,50,70,90)) +
+    #scale_y_log10(limits=c(0.01,100),breaks=c(0.01,0.1,1,10,100)) +
+    #coord_trans(x="log10", y= "log10") +
+    scale_x_continuous(trans="log10", breaks=c(0.01,0.1,1,10,50,90))+
+    scale_y_continuous(trans="log10", breaks=c(0.01,0.1,1,10,100)) +
+    annotation_logticks(sides="trbl") +
+    theme(axis.text.y = element_text(colour = "black", size = 20, face = "bold"), 
+    axis.text.x = element_text(colour = "black", face = "bold", size = 20), 
+    legend.text = element_text(size = 18, face ="bold", colour ="black"), 
+    legend.position = "right", axis.title.y = element_text(face = "bold", size = 14), 
+    axis.title.x = element_text(face = "bold", size = 25, colour = "black"), 
+    axis.title.y.left = element_text(face = "bold", size = 25, colour = "black"),
+    legend.title = element_text(size = 20, colour = "black", face = "bold"), 
+    panel.background = element_blank(), panel.border = element_rect(colour = "black", fill = NA, size = 1.2),
+    legend.key=element_blank(),
+    plot.title = element_text(color = "black", size = 30, face = "bold", hjust = 0.5)) + 
+    labs(
+    title = "Percent exceedance of daily Q at GWVN",
+    x = "Percent exceedance (%)",color="Period") +
+    ylab (bquote('Discharge '(ft^3/s))) +
+    theme(axis.title.x = element_text(margin=margin(t=10)), #add margin to x-axis title
+        axis.title.y = element_text(margin=margin(r=10)))
+
+ggsave("Daily Q Percent Exceedance at GWVN.jpeg",dailyQ_duration,height=13, width=25)
+```
+
+*Conclusion:* Results are consistent with [Colosimo and Wilcock (2002)](https://doi.org/10.1111/j.1752-1688.2007.00039.x "Colosimo and Wilcock 2002"). Earlier period (1958-1988) was shown to consistently have lower maximum annual Q than later period (1997-2019). This could be due to either climate change or urban development. The next section will attempt to disentangle the impacts of them.
+
+# Relate Red Run to GWVN
+
+Since USGS gauging station at Red Run near Owings Mills got installed recently in 2019, I will attempt to plot the specific discharge of the two stations and see how similar they are. The purpose is to infer about Red Run hydrology, while using GWVN as an estimate.
+
+```{r message=F,warning=F}
+#GWVN 
+
+# Set gauging site number
+siteNumber_GWVN <- '01589300' # Gwynns Falls at Villa Nova MD
+
+# Set start & end dates for period
+startDate_GWVN <- '2019-10-01'
+endDate_GWVN <- '2022-09-30' # through end of the study period, 2019
+
+# Read in daily discharge (Q) data from USGS National Water Info System (NWIS)
+Daily_GWVN <- readNWISDaily(siteNumber_GWVN, '00060', startDate_GWVN, endDate_GWVN)
+# 00060 is the USGS parameter code for stream discharge
+
+# Read in information about site & set short name - note ** interactive
+INFO_GWVN <- readNWISInfo(siteNumber_GWVN, '00060') 
+# Set short name to 'Gwynns Falls-Villa Nova'
+# Set station abbreviation to 'GWVN'
+# Set 'Stream flow, mean. daily' to 'DailyQ_cfs'
+# Set abbreviation for discharge units (ft3/s) to 'cfs'
+
+# Create eList -- EGRET variable
+eList_GWVN <- as.egret(INFO_GWVN, Daily_GWVN, NA, NA)
+```
+
+Red Run near Owings Mills (RROM)
+
+Available daily Q: 2019-09-12 to present
+Site code: 01589230 
+
+```{r message=F,warning=F}
+#GWVN 
+
+# Set gauging site number
+siteNumber_RROM <- '01589230' # Red Run near Owings Mills
+
+# Set start & end dates for period
+startDate_RROM <- '2019-10-01'
+endDate_RROM <- '2022-09-30' # through end of the 2022 water year
+
+# Read in daily discharge (Q) data from USGS National Water Info System (NWIS)
+Daily_RROM <- readNWISDaily(siteNumber_RROM, '00060', startDate_RROM, endDate_RROM)
+# 00060 is the USGS parameter code for stream discharge
+
+# Read in information about site & set short name - note ** interactive
+INFO_RROM <- readNWISInfo(siteNumber_RROM, '00060') 
+# Set short name to 'Red Run-Owings Mills'
+# Set station abbreviation to 'RROM'
+# Set 'Stream flow, mean. daily' to 'DailyQ_cfs'
+# Set abbreviation for discharge units (ft3/s) to 'cfs'
+
+# Create eList -- EGRET variable
+eList_RROM <- as.egret(INFO_RROM, Daily_RROM, NA, NA)
+```
+
+
+# Plot duration curves of the two watersheds
+
+```{r message=F,warning=F}
+library(dplyr)
+library(ggplot2)
+
+#GWVN 
+                  
+dailyQ_GWVN <- Daily_GWVN %>% select(MonthSeq,Q) %>%
+  mutate(specific_Q = Q/32.5, rank = rank(-Q), ri = (length(Q)+1)/rank,
+                       percent_exceed = (1/ri)*100, watershed = "GWVN") %>%
+  as.data.frame() 
+
+#RROM
+dailyQ_RROM <- Daily_RROM %>%  select(MonthSeq,Q) %>%
+  mutate(specific_Q = Q/19.1, rank = rank(-Q), ri = (length(Q)+1)/rank,
+                       percent_exceed = (1/ri)*100, watershed= "RROM") %>%
+  as.data.frame() 
+
+dailyQ_RROM_GWVN <- full_join(dailyQ_GWVN,dailyQ_RROM) %>% 
+   ggplot(aes(x=percent_exceed, y=specific_Q, group=watershed,color=watershed)) +
+    geom_line(size=4) +
+    scale_color_manual(values=c("#1b9e77","#e7298a")) +
+    scale_x_continuous(trans="log10", breaks=c(0.01,0.1,1,10,50,100))+
+    scale_y_continuous(trans="log10", breaks=c(0.001,0.01,0.1,1,10,100)) +
+    #coord_trans(x="log10", y= "log10") + 
+    #scale_x_continuous(breaks=c(1,10,30,50,70,90)) +
+    #scale_y_continuous(breaks=c(1,10,100)) +
+    #scale_x_continuous(trans="log10") +
+    #scale_y_continuous(trans="log10") +
+    annotation_logticks(sides="trbl") +
+    theme(axis.text.y = element_text(colour = "black", size = 20, face = "bold"), 
+    axis.text.x = element_text(colour = "black", face = "bold", size = 20), 
+    legend.text = element_text(size = 18, face ="bold", colour ="black"), 
+    legend.position = "right", axis.title.y = element_text(face = "bold", size = 14), 
+    axis.title.x = element_text(face = "bold", size = 25, colour = "black"), 
+    axis.title.y.left = element_text(face = "bold", size = 25, colour = "black"),
+    legend.title = element_text(size = 20, colour = "black", face = "bold"), 
+    panel.background = element_blank(), panel.border = element_rect(colour = "black", fill = NA, size = 1.2),
+    legend.key=element_blank(),
+    plot.title = element_text(color = "black", size = 30, face = "bold", hjust = 0.5)) + 
+    labs(
+    title = "Percent exceedance of mean daily specific Q at RROM and GWVN",
+    x = "Percent exceedance (%)",color="Watershed") +
+    ylab (bquote('Specific discharge '(ft^3/s~km^-2))) +
+    theme(axis.title.x = element_text(margin=margin(t=10)), #add margin to x-axis title
+        axis.title.y = element_text(margin=margin(r=10)))
+
+ggsave("Mean Daily Specific Q Percent Exceedance at GWVN and RROM.jpeg",dailyQ_RROM_GWVN,height=13, width=25)
+```
+
+*Conclusion:* With specific discharge values of RROM and GWVN plotting next to each other, it was shown that GWVN should be a good representative of Red Run, since duration curves of the two watersheds are very similar to each other. 
+
+# Flow duration curves of multiple watersheds
+
+For this section, I am going to investigate the long-term trends of four watersheds, including Gwynns Falls at Villa Nova, Western Run, Gunpowder Falls at Hoffmanville, Piney Run at Dover, Morgan Run near Louisville, and Little Falls at Blue Mount.
+
+```{r message=F,warning=F}
+### 99. Functions from EGRET vignette page for Flow Trends ####
+# http://usgs-r.github.io/EGRET/articles/streamflow_trend.html
+
+
+
+########## this is the function you will use to make a single trend graph  ##############
+
+
+plotFlowTrend <- function (eList, istat, startDate = NA, endDate = NA, 
+                           paStart = 4, paLong = 12, window = 30, qMax = NA, 
+                           printTitle = TRUE, tinyPlot = FALSE, 
+                           customPar = FALSE, runoff = FALSE,
+                           qUnit = 2, printStaName = TRUE, printPA = TRUE,
+                           printIstat = TRUE, cex = 0.8, cex.axis = 1.1,
+                           cex.main = 1.1, lwd = 2, col = "black", ...){
+  localDaily <- getDaily(eList)
+  localINFO <- getInfo(eList)
+  localINFO$paStart <- paStart
+  localINFO$paLong <- paLong
+  localINFO$window <- window
+  start <- as.Date(startDate)
+  end <- as.Date(endDate)
+  
+  if(is.na(startDate)){
+    start <- as.Date(localDaily$Date[1]) 
+  } 
+  
+  if(is.na(endDate)){
+    end <- as.Date(localDaily$Date[length(localDaily$Date)])
+  }
+  
+  localDaily <- subset(localDaily, Date >= start & Date <= end)
+  eList <- as.egret(localINFO,localDaily)
+  localAnnualSeries <- makeAnnualSeries(eList)
+  qActual <- localAnnualSeries[2, istat, ]
+  qSmooth <- localAnnualSeries[3, istat, ]
+  years <- localAnnualSeries[1, istat, ]
+  Q <- qActual
+  time <- years
+  LogQ <- log(Q)
+  mktFrame <- data.frame(time,LogQ)
+  mktFrame <- na.omit(mktFrame)
+  mktOut <- rkt::rkt(mktFrame$time,mktFrame$LogQ)
+  zypOut <- zyp::zyp.zhang(mktFrame$LogQ,mktFrame$time)
+  slope <- mktOut$B
+  slopePct <- 100 * (exp(slope)) - 100
+  slopePct <- format(slopePct,digits=2)
+  pValue <- zypOut[6]
+  pValue <- format(pValue,digits = 3)
+  
+  if (is.numeric(qUnit)) {
+    qUnit <- qConst[shortCode = qUnit][[1]]
+  } else if (is.character(qUnit)) {
+    qUnit <- qConst[qUnit][[1]]
+  }
+  
+  qFactor <- qUnit@qUnitFactor
+  yLab <- qUnit@qUnitTiny
+  
+  if (runoff) {
+    qActual <- qActual * 86.4/localINFO$drainSqKm
+    qSmooth <- qSmooth * 86.4/localINFO$drainSqKm
+    yLab <- "Runoff in mm/day"
+  } else {
+    qActual <- qActual * qFactor
+    qSmooth <- qSmooth * qFactor
+  }
+  
+  localSeries <- data.frame(years, qActual, qSmooth)
+  
+  
+  yInfo <- generalAxis(x = qActual, maxVal = qMax, minVal = 0, 
+                       tinyPlot = tinyPlot)
+  xInfo <- generalAxis(x = localSeries$years, maxVal = decimal_date(end), 
+                       minVal = decimal_date(start), padPercent = 0, tinyPlot = tinyPlot)
+  
+  line1 <- localINFO$shortName
+  nameIstat <- c("minimum day", "7-day minimum", "30-day minimum", 
+                 "median daily", "mean daily", "30-day maximum", "7-day maximum", 
+                 "maximum day")
+  
+  line2 <-  paste0("\n", setSeasonLabelByUser(paStartInput = paStart, 
+                                              paLongInput = paLong), "  ", nameIstat[istat])
+  
+  line3 <- paste0("\nSlope estimate is ",slopePct,"% per year, Mann-Kendall p-value is ",pValue)
+  
+  if(tinyPlot){
+    title <- paste(nameIstat[istat])
+  } else {
+    title <- paste(line1, line2, line3)
+  }
+  
+  if (!printTitle){
+    title <- ""
+  }
+  
+  genericEGRETDotPlot(x = localSeries$years, y = localSeries$qActual, 
+                      xlim = c(xInfo$bottom, xInfo$top), ylim = c(yInfo$bottom, 
+                                                                  yInfo$top), xlab = "", ylab = yLab, customPar = customPar, 
+                      xTicks = xInfo$ticks, yTicks = yInfo$ticks, cex = cex, 
+                      plotTitle = title, cex.axis = cex.axis, cex.main = cex.main, 
+                      tinyPlot = tinyPlot, lwd = lwd, col = col, ...)
+  lines(localSeries$years, localSeries$qSmooth, lwd = lwd, 
+        col = col)
+}
+
+#########################################################################################
+###### this the the function you will use to make the Quantile Kendall Plot #############
+#########################################################################################
+
+plotQuantileKendall <- function(eList, startDate = NA, endDate = NA, 
+                                paStart = 4, paLong = 12,     
+                                legendLocation = "topleft", legendSize = 1.0,
+                                yMax = NA, yMin = NA) {
+  localDaily <- eList$Daily
+  localINFO <- eList$INFO
+  localINFO$paStart <- paStart
+  localINFO$paLong <- paLong
+  start <- as.Date(startDate)
+  end <- as.Date(endDate)
+  
+  if(is.na(startDate)){
+    start <- as.Date(localDaily$Date[1]) 
+  } 
+  
+  if(is.na(endDate)){
+    end <- as.Date(localDaily$Date[length(localDaily$Date)])
+  }
+  
+  localDaily <- subset(localDaily, Date >= start & Date <= end)
+  eList <- as.egret(localINFO,localDaily)
+  eList <- setPA(eList, paStart=paStart, paLong=paLong)
+  
+  v <- makeSortQ(eList)
+  sortQ <- v[[1]]
+  time <- v[[2]]
+  results <- trendSortQ(sortQ, time)
+  pvals <- c(0.001,0.01,0.05,0.1,0.25,0.5,0.75,0.9,0.95,0.99,0.999)
+  zvals <- qnorm(pvals)
+  name <- eList$INFO$shortName
+  #  ymax <- trunc(max(results$slopePct)*10)
+  #  ymax <- max(ymax + 2, 5)
+  #  ymin <- floor(min(results$slopePct)*10)
+  #  ymin <- min(ymin - 2, -5)
+  #  yrange <- c(ymin/10, ymax/10)
+  #  yticks <- axisTicks(yrange, log = FALSE)
+  ymax <- max(results$slopePct + 0.5, yMax, na.rm = TRUE)
+  ymin <- min(results$slopePct - 0.5, yMin, na.rm = TRUE)
+  yrange <- c(ymin, ymax)
+  yticks <- axisTicks(yrange, log = FALSE, nint =7)
+  p <- results$pValueAdj
+  color <- ifelse(p <= 0.1,"black","snow3")
+  color <- ifelse(p < 0.05, "red", color)
+  pvals <- c(0.001,0.01,0.05,0.1,0.25,0.5,0.75,0.9,0.95,0.99,0.999)
+  zvals <- qnorm(pvals)
+  name <- paste0("\n", eList$INFO$shortName,"\n",
+                 start," through ", end, "\n", 
+                 setSeasonLabelByUser(paStartInput = paStart, paLongInput = paLong))
+  plot(results$z,results$slopePct,col = color, pch = 20, cex = 1.0, 
+       xlab = "Daily non-exceedance probability", 
+       ylab = "Trend slope in percent per year", 
+       xlim = c(-3.2, 3.2), ylim = yrange, yaxs = "i", 
+       las = 1, tck = 0.02, cex.lab = 1.2, cex.axis = 1.2, 
+       axes = FALSE, frame.plot=TRUE)
+  mtext(name, side =3, line = 0.2, cex = 1.2)
+  axis(1,at=zvals,labels=pvals, las = 1, tck = 0.02)
+  axis(2,at=yticks,labels = TRUE, las = 1, tck = 0.02)
+  axis(3,at=zvals,labels=FALSE, las = 1, tck=0.02)
+  axis(4,at=yticks,labels = FALSE, tick = TRUE, tck = 0.02)
+  abline(h=0,col="blue")
+  legend(legendLocation,c("> 0.1","0.05 - 0.1","< 0.05"),col = c("snow3",                                            "black","red"),pch = 20, title = "p-value",
+         pt.cex=1.0, cex = legendSize * 1.5)
+}    
+
+#########################################################################################
+############  This next function combines four individual trend graphs (for mimimum day,
+########### median day, mean day, and maximum day) along with the quantile kendall graph
+#########################################################################################
+
+plotFiveTrendGraphs <- function(eList, startDate = NA, endDate = NA, 
+                                paStart = 4, paLong = 12, qUnit = 2, window = 30, 
+                                legendLocation = "topleft", legendSize = 1.0) {
+  localDaily <- eList$Daily
+  localINFO <- eList$INFO
+  localINFO$paStart <- paStart
+  localINFO$paLong <- paLong
+  localINFO$window <- window
+  
+  start <- as.Date(startDate)
+  end <- as.Date(endDate)
+  
+  if(is.na(startDate)){
+    start <- as.Date(localDaily$Date[1]) 
+  } 
+  
+  if(is.na(endDate)){
+    end <- as.Date(localDaily$Date[length(localDaily$Date)])
+  }
+  
+  localDaily <- subset(localDaily, Date >= start & Date <= end)
+  
+  eList <- as.egret(localINFO,localDaily)
+  eList <- setPA(eList, paStart=paStart, paLong=paLong, window=window)
+  # this next line of code is inserted so that when paLong = 12, we always use the
+  # climate year when looking at the trends in the annual minimum flow
+  paStart1 <- if(paLong == 12)  4 else paStart
+  plotFlowTrend(eList, istat = 1, qUnit = qUnit, paStart = paStart1, paLong = paLong, window = window)
+  plotFlowTrend(eList, istat = 4, qUnit = qUnit, paStart = paStart, paLong = paLong, window = window)
+  plotFlowTrend(eList, istat = 8, qUnit = qUnit, paStart = paStart, paLong = paLong, window = window)
+  plotFlowTrend(eList, istat = 5, qUnit = qUnit, paStart = paStart, paLong = paLong, window = window)
+  # now the quantile kendall
+  plotQuantileKendall(eList, startDate = startDate, endDate = endDate, paStart = paStart,
+                      paLong = paLong, legendLocation = legendLocation, legendSize = legendSize)
+  
+} 
+
+#########################################################################################
+########### makeSortQ creates a matrix called Qsort. 
+############It sorted from smallest to largest over dimDays 
+############(if working with full year dimDays=365), 
+#############and also creates other vectors that contain information about this array.
+#########################################################################################
+
+makeSortQ <- function(eList){
+  localINFO <- getInfo(eList)
+  localDaily <- getDaily(eList)
+  paStart <- localINFO$paStart
+  paLong <- localINFO$paLong
+  # determine the maximum number of days to put in the array
+  numDays <- length(localDaily$DecYear)
+  monthSeqFirst <- localDaily$MonthSeq[1]
+  monthSeqLast <- localDaily$MonthSeq[numDays]
+  # creating a data frame (called startEndSeq) of the MonthSeq values that go into each year
+  Starts <- seq(paStart, monthSeqLast, 12)
+  Ends <- Starts + paLong - 1
+  startEndSeq <- data.frame(Starts, Ends)
+  # trim this list of Starts and Ends to fit the period of record
+  startEndSeq <- subset(startEndSeq, Ends >= monthSeqFirst & Starts <= monthSeqLast)
+  numYearsRaw <- length(startEndSeq$Ends)
+  # set up some vectors to keep track of years
+  good <- rep(0, numYearsRaw)
+  numDays <- rep(0, numYearsRaw)
+  midDecYear <- rep(0, numYearsRaw)
+  Qraw <- matrix(nrow = 366, ncol = numYearsRaw)
+  for(i in 1: numYearsRaw) {
+    startSeq <- startEndSeq$Starts[i]
+    endSeq <- startEndSeq$Ends[i]
+    startJulian <- getFirstJulian(startSeq)
+    # startJulian is the first julian day of the first month in the year being processed
+    # endJulian is the first julian day of the month right after the last month in the year being processed
+    endJulian <- getFirstJulian(endSeq + 1)
+    fullDuration <- endJulian - startJulian
+    yearDaily <- localDaily[localDaily$MonthSeq >= startSeq & (localDaily$MonthSeq <= endSeq), ]
+    nDays <- length(yearDaily$Q)
+    if(nDays == fullDuration) {
+      good[i] <- 1
+      numDays[i] <- nDays
+      midDecYear[i] <- (yearDaily$DecYear[1] + yearDaily$DecYear[nDays]) / 2
+      Qraw[1:nDays,i] <- yearDaily$Q
+    }   else {
+      numDays[i] <- NA
+      midDecYear[i] <- NA
+    }
+  }
+  # now we compress the matrix down to equal number of values in each column
+  j <- 0
+  numGoodYears <- sum(good)
+  dayCounts <- ifelse(good==1, numDays, NA)
+  lowDays <- min(dayCounts, na.rm = TRUE)
+  highDays <- max(dayCounts, na.rm = TRUE)
+  dimYears <- numGoodYears
+  dimDays <- lowDays
+  sortQ <- matrix(nrow = dimDays, ncol = dimYears)
+  time <- rep(0,dimYears)
+  for (i in 1:numYearsRaw){
+    if(good[i]==1) {
+      j <- j + 1
+      numD <- numDays[i]
+      x <- sort(Qraw[1:numD, i])
+      # separate odd numbers from even numbers of days
+      if(numD == lowDays) {
+        sortQ[1:dimDays,j] <- x
+      } else {
+        sortQ[1:dimDays,j] <- if(odd(numD)) leapOdd(x) else leapEven(x)
+      }
+      time[j] <- midDecYear[i]
+    } 
+  }
+  
+  sortQList = list(sortQ,time)
+  
+  return(sortQList)         
+}
+#########################################################################################
+########## Another function trendSortQ needed for Quantile Kendall
+#########################################################################################
+
+trendSortQ <- function(Qsort, time){
+  # note requires packages zyp and rkt
+  nFreq <- dim(Qsort)[1]
+  nYears <- length(time)
+  results <- as.data.frame(matrix(ncol=9,nrow=nFreq))
+  colnames(results) <- c("slopeLog","slopePct","pValue","pValueAdj","tau","rho1","rho2","freq","z")
+  for(iRank in 1:nFreq){
+    mkOut <- rkt::rkt(time,log(Qsort[iRank,]))
+    results$slopeLog[iRank] <- mkOut$B
+    results$slopePct[iRank] <- 100 * (exp(mkOut$B) - 1)
+    results$pValue[iRank] <- mkOut$sl
+    outZYP <- zyp.zhang(log(Qsort[iRank,]),time)
+    results$pValueAdj[iRank] <- outZYP[6]
+    results$tau[iRank] <- mkOut$tau
+    # I don't actually use this information in the current outputs, but the code is there 
+    # if one wanted to look at the serial correlation structure of the flow series      
+    serial <- acf(log(Qsort[iRank,]), lag.max = 2, plot = FALSE)
+    results$rho1[iRank] <- serial$acf[2]
+    results$rho2[iRank] <- serial$acf[3]
+    frequency <- iRank / (nFreq + 1)
+    results$freq[iRank] <- frequency
+    results$z[iRank] <- qnorm(frequency)    
+  }
+  return(results)
+}
+#########################################################################################
+################################## getFirstJulian finds the julian date of first day
+################################## of a given month
+#########################################################################################
+
+getFirstJulian <- function(monthSeq){
+  year <- 1850 + trunc((monthSeq - 1) / 12)
+  month <- monthSeq - 12 * (trunc((monthSeq-1)/12))
+  charMonth <- ifelse(month<10, paste0("0",as.character(month)), as.character(month))
+  theDate <- paste0(year,"-",charMonth,"-01")
+  Julian1 <- as.numeric(julian(as.Date(theDate),origin=as.Date("1850-01-01")))
+  return(Julian1)
+}
+
+#########################################################################################
+########### leapOdd  is a function for deleting one value 
+############when the period that contains Februaries has a length that is an odd number
+#########################################################################################
+
+leapOdd <- function(x){
+  n <- length(x)
+  m <- n - 1
+  mid <- (n + 1) / 2
+  mid1 <- mid + 1
+  midMinus <- mid - 1
+  y <- rep(NA, m)
+  y[1:midMinus] <- x[1:midMinus]
+  y[mid:m] <- x[mid1:n]
+  return(y)}
+
+#########################################################################################
+########### leapEven  is a function for deleting one value 
+############when the period that contains Februaries has a length that is an even number
+#########################################################################################
+
+leapEven <- function(x){
+  n <- length(x)
+  m <- n - 1
+  mid <- n / 2
+  y <- rep(NA, m)
+  mid1 <- mid + 1
+  mid2 <- mid + 2
+  midMinus <- mid - 1
+  y[1:midMinus] <- x[1:midMinus]
+  y[mid] <- (x[mid] + x[mid1]) / 2
+  y[mid1:m] <- x[mid2 : n]
+  return(y)
+}
+
+#########################################################################################
+####### determines if the length of a vector is an odd number ###########################
+#########################################################################################
+
+odd <- function(x) {(!(x %% 2) == 0)}
+
+#########################################################################################
+########### calcWY calculates the water year and inserts it into a data frame
+#########################################################################################
+
+
+calcWY <- function (df) {
+  df$WaterYear <- as.integer(df$DecYear)
+  df$WaterYear[df$Month >= 10] <- df$WaterYear[df$Month >= 
+                                                 10] + 1
+  return(df)
+}
+#########################################################################################
+##### calcCY calculates the climate year and inserts it into a data frame
+#########################################################################################
+
+calcCY <- function (df){
+  df$ClimateYear <- as.integer(df$DecYear)
+  df$ClimateYear[df$Month >= 4] <- df$ClimateYear[df$Month >= 
+                                                    4] + 1
+  return(df)
+}
+#########################################################################################
+######## smoother is a function does the trend in real discharge units and not logs. 
+######## It is placed here so that users wanting to run this alternative have it available
+######## but it is not actually called by any function in this document
+#########################################################################################
+
+smoother <- function(xy, window){
+  edgeAdjust <- TRUE
+  x <- xy$x
+  y <- xy$y
+  n <- length(y)
+  z <- rep(0,n)
+  x1 <- x[1]
+  xn <- x[n]
+  for (i in 1:n) {
+    xi <- x[i]
+    distToEdge <- min((xi - x1), (xn - xi))
+    close <- (distToEdge < window)
+    thisWindow <- if (edgeAdjust & close) 
+      (2 * window) - distToEdge
+    else window
+    w <- triCube(x - xi, thisWindow)
+    mod <- lm(xy$y ~ x, weights = w)
+    new <- data.frame(x = x[i])
+    z[i] <- predict(mod, new)
+  }
+  return(z)
+}
+
+```
+
+
+## Gwynns Falls at Villa Nova (GWVN)
+
+Available daily Q: 1957-02-01 to present
+Site code: 01589300 
+
+```{r message=F,warning=F}
+
+# Set gauging site number
+siteNumber_GWVN <- '01589300' # Gwynns Falls at Villa Nova MD
+
+# Set start & end dates for period
+startDate_GWVN <- '1957-10-01'
+endDate_GWVN <- '2022-09-30'
+
+# Read in daily discharge (Q) data from USGS National Water Info System (NWIS)
+Daily_GWVN <- readNWISDaily(siteNumber_GWVN, '00060', startDate_GWVN, endDate_GWVN)
+# 00060 is the USGS parameter code for stream discharge
+
+# Read in information about site & set short name - note ** interactive
+INFO_GWVN <- readNWISInfo(siteNumber_GWVN, '00060') 
+# Set short name to 'Gwynns Falls-Villa Nova'
+# Set station abbreviation to 'GWVN'
+# Set 'Stream flow, mean. daily' to 'DailyQ_cfs'
+# Set abbreviation for discharge units (ft3/s) to 'cfs'
+
+# Create eList -- EGRET variable
+eList_GWVN <- as.egret(INFO_GWVN, Daily_GWVN, NA, NA)
+
+plotFlowTrend(eList_GWVN, qUnit = 'cfs', paStart = 10, istat = 5) # see stat #s below; mean daily Q
+
+###########QUANTILE KENDALL###############
+
+Start <- 1957 # first year of Gwynns Falls - Villa Nova record
+End <- 2019
+
+# create start & end dates
+Start.date <- paste(Start, '-10-01', sep='')
+End.date <- paste(End, '-09-30', sep='')
+
+plotQuantileKendall(eList_GWVN, startDate = Start.date, endDate = End.date, 
+                    paStart = 10, paLong = 12,
+                    legendLocation = "topright", legendSize = 0.5)
+```
+
+## Gunpowder Falls at Hoffmanville
+
+Available daily Q: 2000-04-01 to 2022-10-18
+Site code: 01581810  
+
+```{r message=F,warning=F}
+# Set gauging site number
+siteNumber_GFH <- '01581810' # Gunpowder Falls at Hoffmanville
+
+# Set start & end dates for period
+startDate_GFH <- '2000-10-01'
+endDate_GFH <- '2022-09-30'
+
+# Read in daily discharge (Q) data from USGS National Water Info System (NWIS)
+Daily_GFH <- readNWISDaily(siteNumber_GFH, '00060', startDate_GFH, endDate_GFH)
+# 00060 is the USGS parameter code for stream discharge
+
+# Read in information about site & set short name - note ** interactive
+INFO_GFH <- readNWISInfo(siteNumber_GFH, '00060') 
+# Set short name to 'Gunpowder Falls at Hoffmanville'
+# Set station abbreviation to 'GFH'
+# Set 'Stream flow, mean. daily' to 'DailyQ_cfs'
+# Set abbreviation for discharge units (ft3/s) to 'cfs'
+
+# Create eList -- EGRET variable
+eList_GFH <- as.egret(INFO_GFH, Daily_GFH, NA, NA)
+
+plotFlowTrend(eList_GFH, qUnit = 'cfs', paStart = 10, istat = 5) # see stat #s below; mean daily Q
+
+###########QUANTILE KENDALL###############
+
+Start <- 2000 # first year of record
+End <- 2019
+
+# create start & end dates
+Start.date <- paste(Start, '-10-01', sep='')
+End.date <- paste(End, '-09-30', sep='')
+
+plotQuantileKendall(eList_GFH, startDate = Start.date, endDate = End.date, 
+                    paStart = 10, paLong = 12,
+                    legendLocation = "topright", legendSize = 0.5)
+
+```
+
+## Piney Run at Dover (PRD)
+
+Available daily Q: 1982-05-10 to present 
+Site code: 01583100 
+
+```{r message=F,warning=F}
+# Set gauging site number
+siteNumber_PRD <- '01583100' # Piney Run at Dover
+
+# Set start & end dates for period
+startDate_PRD <- '1982-10-01'
+endDate_PRD <- '2022-09-30'
+
+# Read in daily discharge (Q) data from USGS National Water Info System (NWIS)
+Daily_PRD<- readNWISDaily(siteNumber_PRD, '00060', startDate_PRD, endDate_PRD)
+# 00060 is the USGS parameter code for stream discharge
+
+# Read in information about site & set short name - note ** interactive
+INFO_PRD <- readNWISInfo(siteNumber_PRD, '00060') 
+# Set short name to 'Piney Run-Dover'
+# Set station abbreviation to 'PRD'
+# Set 'Stream flow, mean. daily' to 'DailyQ_cfs'
+# Set abbreviation for discharge units (ft3/s) to 'cfs'
+
+# Create eList -- EGRET variable
+eList_PRD <- as.egret(INFO_PRD, Daily_PRD, NA, NA)
+
+plotFlowTrend(eList_PRD, qUnit = 'cfs', paStart = 10, istat = 4) # see stat #s below; mean daily Q
+
+###########QUANTILE KENDALL###############
+
+Start <- 1982 # first year of record
+End <- 2019
+
+# create start & end dates
+Start.date <- paste(Start, '-10-01', sep='')
+End.date <- paste(End, '-09-30', sep='')
+
+plotQuantileKendall(eList_PRD, startDate = Start.date, endDate = End.date, 
+                    paStart = 10, paLong = 12,
+                    legendLocation = "topright", legendSize = 0.5)
+```
+
+## Morgan Run (MR)
+
+Available daily Q: 1982-10-01 to present
+Site code: 01586610 
+
+```{r message=F,warning=F}
+# Set gauging site number
+siteNumber_MR <- '01586610' # Morgan Run
+
+# Set start & end dates for period
+startDate_MR <- '1982-10-01'
+endDate_MR <- '2022-09-30'
+
+# Read in daily discharge (Q) data from USGS National Water Info System (NWIS)
+Daily_MR<- readNWISDaily(siteNumber_MR, '00060', startDate_MR, endDate_MR)
+# 00060 is the USGS parameter code for stream discharge
+
+# Read in information about site & set short name - note ** interactive
+INFO_MR <- readNWISInfo(siteNumber_MR, '00060') 
+# Set short name to 'Morgan Run-Louisville'
+# Set station abbreviation to 'MR'
+# Set 'Stream flow, mean. daily' to 'DailyQ_cfs'
+# Set abbreviation for discharge units (ft3/s) to 'cfs'
+
+# Create eList -- EGRET variable
+eList_MR <- as.egret(INFO_MR, Daily_MR, NA, NA)
+
+plotFlowTrend(eList_MR, qUnit = 'cfs', paStart = 10, istat = 4) # see stat #s below; mean daily Q
+
+###########QUANTILE KENDALL###############
+
+Start <- 1982 # first year of record
+End <- 2019
+
+# create start & end dates
+Start.date <- paste(Start, '-10-01', sep='')
+End.date <- paste(End, '-09-30', sep='')
+
+plotQuantileKendall(eList_MR, startDate = Start.date, endDate = End.date, 
+                    paStart = 10, paLong = 12,
+                    legendLocation = "topright", legendSize = 0.5)
+```
+
+## Western Run 
+
+Available daily Q: 1944-10-01 to present
+Site code: 01583500   
+
+```{r message=F,warning=F}
+# Set gauging site number
+siteNumber_WR <- '01583500' # Western Run 
+
+# Set start & end dates for period
+startDate_WR <- '1944-10-01'
+endDate_WR <- '2022-09-30'
+
+# Read in daily discharge (Q) data from USGS National Water Info System (NWIS)
+Daily_WR<- readNWISDaily(siteNumber_WR, '00060', startDate_WR, endDate_WR)
+# 00060 is the USGS parameter code for stream discharge
+
+# Read in information about site & set short name - note ** interactive
+INFO_WR <- readNWISInfo(siteNumber_WR, '00060') 
+# Set short name to 'Western Run'
+# Set station abbreviation to 'WR'
+# Set 'Stream flow, mean. daily' to 'DailyQ_cfs'
+# Set abbreviation for discharge units (ft3/s) to 'cfs'
+
+# Create eList -- EGRET variable
+eList_WR <- as.egret(INFO_WR, Daily_WR, NA, NA)
+
+plotFlowTrend(eList_WR, qUnit = 'cfs', paStart = 10, istat = 5) # see stat #s below; mean daily Q
+
+###########QUANTILE KENDALL###############
+
+Start <- 1944 # first year of record
+End <- 2019
+
+# create start & end dates
+Start.date <- paste(Start, '-10-01', sep='')
+End.date <- paste(End, '-09-30', sep='')
+
+plotQuantileKendall(eList_WR, startDate = Start.date, endDate = End.date, 
+                    paStart = 10, paLong = 12,
+                    legendLocation = "topright", legendSize = 0.5)
+
+```
+
+
+## LITTLE FALLS AT BLUE MOUNT, MD
+
+Available daily Q: 1944-06-01 to present
+Site code: 01582000    
+
+```{r message=F,warning=F}
+# Set gauging site number
+siteNumber_LF <- '01582000' # Little Falls
+
+# Set start & end dates for period
+startDate_LF <- '1944-10-01'
+endDate_LF <- '2022-09-30'
+
+# Read in daily discharge (Q) data from USGS National Water Info System (NWIS)
+Daily_LF<- readNWISDaily(siteNumber_LF, '00060', startDate_LF, endDate_LF)
+# 00060 is the USGS parameter code for stream discharge
+
+# Read in information about site & set short name - note ** interactive
+INFO_LF <- readNWISInfo(siteNumber_LF, '00060') 
+# Set short name to 'Little Falls at Blue Mount'
+# Set station abbreviation to 'LF'
+# Set 'Stream flow, mean. daily' to 'DailyQ_cfs'
+# Set abbreviation for discharge units (ft3/s) to 'cfs'
+
+# Create eList -- EGRET variable
+eList_LF <- as.egret(INFO_LF, Daily_LF, NA, NA)
+
+plotFlowTrend(eList_LF, qUnit = 'cfs', paStart = 10, istat = 5) # see stat #s below; mean daily Q
+
+###########QUANTILE KENDALL###############
+
+Start <- 1944 # first year of record
+End <- 2019
+
+# create start & end dates
+Start.date <- paste(Start, '-10-01', sep='')
+End.date <- paste(End, '-09-30', sep='')
+
+plotQuantileKendall(eList_LF, startDate = Start.date, endDate = End.date, 
+                    paStart = 10, paLong = 12,
+                    legendLocation = "topright", legendSize = 0.5)
+
+
+```
