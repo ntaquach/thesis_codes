@@ -47,8 +47,10 @@ These are the codes I used to run PCA of my averaged water chemistry data. Inste
 ## Load data
 
 ```{r message=F, warning=F}
+setwd("C:/Users/Ng Tien Anh Quach/OneDrive - University of North Carolina at Chapel Hill/Previous hard drive/Thesis stuff/Data Analysis/Part a (87-09)")
+
 library(readxl)
-wc <- read_excel("F:/Thesis stuff/Data Analysis/Part a (87-09)/PCA (Cl, Ca, SC)/Data for PCA.xlsx")
+wc <- read_excel("PCA (Cl, Ca, SC)/Data for PCA.xlsx")
 ```
 
 ## Make a matrix from raw data
@@ -109,7 +111,7 @@ wc_pca_plot <- ggplot(site.scores.dplyr,aes(PC1, PC2))+
     legend.title = element_text(size = 20, colour = "black", face = "bold"), 
     panel.background = element_blank(), panel.border = element_rect(colour = "black", fill = NA, size = 1.2),
     legend.key=element_blank(),
-    plot.title = element_text(color = "black", size = 30, face = "bold", hjust = 0.5)) + 
+    plot.title = element_text(color = "black", size = 20, face = "bold", hjust = 0.5)) + 
     labs(
     title = "PCA graph of water chemistry measurements") + 
     theme(axis.title.x = element_text(margin=margin(t=10)), #add margin to x-axis title
