@@ -70,7 +70,7 @@ rel_density <- data.frame(Site = density_combined$Site, density_wo_su_rel)
 
 ```
 
-# Testing the difference among different sub-watersheds
+# Testing the difference between 1987 and 2009 assemblages
 
 ## Create variable grouping
 
@@ -79,9 +79,9 @@ library(dplyr)
 rel_density <- as.data.frame(rel_density) %>%
   mutate(Group = case_when(
     Site %in% c("1_87", "2_87","3_87", "4_87","5_87", "7_87", "8_87",
-                "9_87", "9a_87", "10_87") ~ "1987 Groups",  # Assign Group1 
+                "9_87", "9a_87", "10_87") ~ "1987 Group",  # Assign 1987 Group
     Site %in% c("1_09", "2_09", "3_09", "4_09","5_09", "7_09", "8_09",
-                "9_09", "9a_09", "10_09") ~ "2009 Groups"  # Assign Group2
+                "9_09", "9a_09", "10_09") ~ "2009 Group"  # Assign 2009 Group
   )) %>% select(Site, Group, everything())
 
 ```
@@ -98,19 +98,23 @@ print(result_mrpp)
 ```
 
 
-# Testing the difference between 1987 and 2009 assemblages
+# Testing the difference among sub-watersheds
 
 ## Create variable grouping
 
 ```{r message=F, warning=F}
 library(dplyr)
 rel_density <- as.data.frame(rel_density) %>%
-  mutate(Group = case_when(
-    Site %in% c("1_87", "2_87","3_87", "4_87","5_87", "7_87", "8_87",
-                "9_87", "9a_87", "10_87") ~ "1987 Groups",  # Assign Group1 
-    Site %in% c("1_09", "2_09", "3_09", "4_09","5_09", "7_09", "8_09",
-                "9_09", "9a_09", "10_09") ~ "2009 Groups"  # Assign Group2
-  )) %>% select(Site, Group, everything())
+  mutate(watershed_Group = case_when(
+    Site %in% c("1_87", "2_87","3_87", "4_87","5_87", "8_87") ~ "1987 LM Group",  
+    # Assign 1987 LM group 
+    Site %in% c("9a_87", "10_87") ~ "1987 NO Group",  # Assign 1987 NO group
+    Site %in% c("7_87","9_87") ~ "1987 NWE Group",  # Assign 1987 NW and WE
+    Site %in% c("1_09", "2_09", "3_09", "4_09","5_09", "8_09") ~ "2009 LM Group",  
+    # Assign 2009 LM
+    Site %in% c("9a_09", "10_09") ~ "2009 NO Group",  # Assign 2009 NO group
+    Site %in% c("7_09","9_09") ~ "2009 NWE Group"  # Assign 2009 NW and WE
+  )) %>% select(Site, Group,watershed_Group, everything())
 
 ```
 
@@ -118,8 +122,7 @@ rel_density <- as.data.frame(rel_density) %>%
 
 ```{r message=F, warning=F}
 # Run MRPP
-result_mrpp <- mrpp(vegdist(rel_density[, -c(1, 2)], method="bray"), rel_density$Group, 
-                    distance = "bray", permutations = 999)
+result_mrpp <- mrpp(vegdist(rel_density[, -c(1, 2, 3)], method="bray"), rel_density$watershed_Group, distance = "bray", permutations = 999)
 
 # Print the results
 print(result_mrpp)
