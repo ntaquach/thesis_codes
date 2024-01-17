@@ -120,10 +120,40 @@ rel_density <- as.data.frame(rel_density) %>%
 
 ## Run MRPP
 
+### Testing among 1987 and 2009 Groups
+
 ```{r message=F, warning=F}
 # Run MRPP
 result_mrpp <- mrpp(vegdist(rel_density[, -c(1, 2, 3)], method="bray"), rel_density$watershed_Group, distance = "bray", permutations = 999)
 
 # Print the results
 print(result_mrpp)
+```
+
+### Testing among 1987 and 2009 groups separately
+
+```{r message=F, warning=F}
+# Subset the data for 1987 groups
+rel_density_1987 <- rel_density %>%
+  filter(watershed_Group %in% c("1987 LM Group", "1987 NO Group", "1987 NWE Group"))
+
+# Run MRPP for 1987 groups
+result_mrpp_1987 <- mrpp(vegdist(rel_density_1987[, -c(1, 2, 3)], method = "bray"), 
+                         rel_density_1987$watershed_Group, 
+                         distance = "bray", permutations = 999)
+print(result_mrpp_1987)
+
+```
+
+```{r message=F, warning=FALSE}
+# Subset the data for 2009 groups
+rel_density_2009 <- rel_density %>%
+  filter(watershed_Group %in% c("2009 LM Group", "2009 NO Group", "2009 NWE Group"))
+
+# Run MRPP for 2009 groups
+result_mrpp_2009 <- mrpp(vegdist(rel_density_2009[, -c(1, 2, 3)], method = "bray"), 
+                         rel_density_2009$watershed_Group, 
+                         distance = "bray", permutations = 999)
+print(result_mrpp_2009)
+
 ```
