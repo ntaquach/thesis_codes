@@ -1,5 +1,5 @@
 ---
-title: "NMDS Combined Density"
+title: "NMDS Combined Total Density"
 author: "Frank"
 date: "`r format(Sys.Date())`"
 output: html_document
@@ -58,8 +58,9 @@ library(vegan)
 Data can be found [here.](https://github.com/tquach123/thesis-codes "Frank's GitHub")
 
 ```{r, warning=F,message=F}
+setwd("C:/GitHub Projects/thesis_codes/Part a (87-09)/NMDS")
 library(readxl)
-density_combined <- read_excel("F:/GitHub Projects/thesis_codes/Part a (87-09)/density_combined.xlsx", 
+density_combined <- read_excel("density_combined.xlsx", 
      sheet = "Final")
 ```
 
@@ -67,14 +68,13 @@ density_combined <- read_excel("F:/GitHub Projects/thesis_codes/Part a (87-09)/d
 
 ```{r,warning=F,message=F}
 density_wo_su <- density_combined[,4:ncol(density_combined)] #exclude the first column that contains SU information
-density_wo_su_rel <- as.matrix(decostand(density_wo_su,method="total")) #calculate relative abundance from abundance data
 ```
 
 ## Run NMDS
 
 ```{r,warning=F,message=F,results='hide'}
 set.seed(1)
-nmds_density <- metaMDS(density_wo_su_rel,distance="bray",maxit=999,trymax = 500,wascores = T,k=2,autotransform = F) #gotta put autotransform on FALSE so R won't transform your data when you don't want it to.
+nmds_density <- metaMDS(density_wo_su,distance="bray",maxit=999,trymax = 500,wascores = T,k=2,autotransform = F) #gotta put autotransform on FALSE so R won't transform your data when you don't want it to.
 ```
 
 ## Plot NMDS graph (standard method)
@@ -110,7 +110,7 @@ data.scores.dplyr <- data.scores %>% mutate(Site = density_combined$Site,Year=de
 taxon.scores <- as.data.frame(scores(nmds_density,display=c("species")))
 
 library(writexl)
-write_xlsx(data.scores.dplyr,"C:/Users/tiena/OneDrive/Documents/thesis-codes/Part a (87-09)/Multiple regression between WC and axis scores/NMDS scores-dplyr.xlsx")
+write_xlsx(data.scores.dplyr,"NMDS scores-dplyr.xlsx")
 head(data.scores.dplyr)
 ```
 
@@ -121,12 +121,11 @@ Package ggplot2 is always the way to go when plotting (Wickham, 2016).
 ```{r, message=F,warning=F}
 library(ggplot2) #load the package
 
-data.scores.dplyr$Subwatershed = factor(data.scores.dplyr$Subwatershed,levels=c("B9 (2%)","B7 (12%)",
-                                                                                "B9A (13%)","B1 (19%)"))
+data.scores.dplyr$Subwatershed = factor(data.scores.dplyr$Subwatershed,levels=c("B9","B7",
+                                                                                "B9A","B1"))
 
 density_combined_graph <- ggplot(data.scores.dplyr, aes(x = NMDS1, y = NMDS2)) + 
-    geom_point(size = 6,stroke=2, aes( shape = Year, color = Subwatershed))+ # geom_polygon(data=data.scores.dplyr,aes(x=NMDS1,y=NMDS2,group=Subwatershed),alpha=0.30); this is to add a little convex polygon to visualize the clusters better. You can try to see how it looks. 
-  scale_color_manual(values = c("#ffeea1", "#feb14c","#fc4d2a","#b10026")) +
+    geom_point(size = 6,stroke=2, aes( shape = Year, colour = Subwatershed))+ # geom_polygon(data=data.scores.dplyr,aes(x=NMDS1,y=NMDS2,group=Subwatershed),alpha=0.30); this is to add a little convex polygon to visualize the clusters better. You can try to see how it looks. 
      theme(axis.text.y = element_text(colour = "black", size = 20, face = "bold"), 
     axis.text.x = element_text(colour = "black", face = "bold", size = 20), 
     legend.text = element_text(size = 18, face ="bold", colour ="black"), 
@@ -142,6 +141,7 @@ density_combined_graph <- ggplot(data.scores.dplyr, aes(x = NMDS1, y = NMDS2)) +
     theme(axis.title.x = element_text(margin=margin(t=10)), #add margin to x-axis title
         axis.title.y = element_text(margin=margin(r=10)))+
     labs(x = "NMDS1", color = "Sub-watershed (% ISA)", y = "NMDS2", shape = "Year")  + 
+    scale_color_manual(values = c("#ffeea1", "#feb14c","#fc4d2a","#b10026")) +
     geom_hline(yintercept=0, linetype="dashed", 
                 color = "black", size=1) + #add horizontal and vertical lines at 0
     geom_vline(xintercept=0, linetype="dashed", 
@@ -185,7 +185,7 @@ ggsave("Combined Density NMDS Biplot.jpeg",desnity_combined_biplot,width=25,heig
 ```{r message=F,warning=F}
 library(ggplot2) #load the package
 
-data.scores.dplyr$Subwatershed = factor(data.scores.dplyr$Subwatershed,levels=c("B9 (2%)", "B7 (12%)","B9A (13%)","B1 (19%)"))
+data.scores.dplyr$Subwatershed = factor(data.scores.dplyr$Subwatershed,levels=c("B9", "B7","B9A","B1"))
 
 density_combined_graph_grayscale <- ggplot(data.scores.dplyr, aes(x = NMDS1, y = NMDS2)) + 
     geom_point(size = 12,aes( shape = Subwatershed, fill = Year))+ # geom_polygon(data=data.scores.dplyr,aes(x=NMDS1,y=NMDS2,group=Subwatershed),alpha=0.30); this is to add a little convex polygon to visualize the clusters better. You can try to see how it looks. 
@@ -206,7 +206,7 @@ density_combined_graph_grayscale <- ggplot(data.scores.dplyr, aes(x = NMDS1, y =
     title = "NMDS graph of combined density") + 
     theme(axis.title.x = element_text(margin=margin(t=10)), #add margin to x-axis title
         axis.title.y = element_text(margin=margin(r=10)))+
-    labs(x = "NMDS1", colour = "Year", y = "NMDS2", shape = "Sub-watershed (% ISA)")  + 
+    labs(x = "NMDS1", colour = "Year", y = "NMDS2", shape = "Sub-watershed")  + 
     geom_hline(yintercept=0, linetype="dashed", 
                 color = "black", size=1) + #add horizontal and vertical lines at 0
     geom_vline(xintercept=0, linetype="dashed", 
