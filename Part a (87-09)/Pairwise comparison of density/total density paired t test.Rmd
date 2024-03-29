@@ -1,0 +1,79 @@
+---
+title: "Density Pairwise comparison"
+author: "Frank"
+date: "`r format(Sys.Date())`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.width=10, fig.height=8)
+```
+
+```{css, echo=FALSE}
+h1, h4 {
+  text-align: center;
+  color: black;
+  font-weight: bold;
+}
+
+/* Whole document: */
+body{
+  font-family: Times New Roman;
+  font-size: 16pt;
+}
+/* Headers */
+h1,h2,h3,h4,h5,h6{
+  font-size: 24pt;
+}
+
+
+<style type="text/css">
+body, td {
+   font-size: 16px;
+}
+code.r{
+  font-size: 16px;
+}
+pre {
+  font-size: 16px
+}
+</style>
+  
+```
+
+# Introduction
+
+The purpose is to see how density changed at each site after 22 years.
+
+## Load data
+
+```{r message=F, warning=F, results=F}
+library(dplyr)
+library(readxl)
+library(rstatix)
+```
+
+```{r message=F, warning=F}
+setwd("C:/GitHub Projects/thesis_codes/Part a (87-09)/Pairwise comparison of density")
+density <- read_excel("density_combined.xlsx",
+                      sheet = "Final")
+str(density)
+
+## summing total density
+density_select <- density %>%
+  mutate(total_sum = rowSums(select(., 4:ncol(.)))) %>% 
+  select(Year,Site,total_sum)
+
+str(density_select)
+```
+## t-test by Year
+
+```{r message=F, warning=F, results=F}
+stat.test <- density_select %>% 
+  t_test(total_sum ~ Year, paired = T, detailed = T) %>%
+  add_significance()
+stat.test
+```
+
+
+
