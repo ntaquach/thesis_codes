@@ -274,6 +274,23 @@ dimcheckMDS(density_wo_su_rel,distance = "bray",k=10,trymax=500,autotransform = 
 
 ```
 
+# Simpson index of diversity
+
+```{r message=F, warning=F}
+density.simpson <- as.data.frame(diversity(density_wo_su, index = "simpson")) %>%
+  mutate(Site = density_combined$Site, Year = density_combined$Year) %>%
+  rename(simpson.index=`diversity(density_wo_su, index = "simpson")` )
+density.simpson
+
+density.simpson %>% 
+  t_test(simpson.index ~ Year, paired = T, detailed = T) %>%
+  add_significance()
+
+ggqqplot(density.simpson, "simpson.index")
+
+```
+
+
 
 # References
 
