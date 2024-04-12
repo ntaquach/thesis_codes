@@ -51,6 +51,7 @@ The purpose is to see how density changed at each site after 22 years.
 library(dplyr)
 library(readxl)
 library(rstatix)
+library(ggpubr)
 ```
 
 ```{r message=F, warning=F}
@@ -75,5 +76,14 @@ stat.test <- density_select %>%
 stat.test
 ```
 
+## Checking assumptions
 
+```{r message=F, warning=F}
+density_select %>% identify_outliers(total_sum)
+```
+```{r message=F, warning=F}
+density_select %>% shapiro_test(total_sum) 
+
+ggqqplot(density_select, "total_sum")
+```
 
